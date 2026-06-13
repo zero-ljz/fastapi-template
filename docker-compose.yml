@@ -1,0 +1,37 @@
+version: '3.4'
+
+services:
+  app:
+    image: app
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - app:/app
+    env_file:
+      - .env
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: secret
+      MYSQL_DB: db1
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0-bullseye
+    volumes:
+      - mysql:/var/lib/mysql
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: db1
+    command: ["--max-connections=1000"]
+    restart: always
+
+volumes:
+  app:
+  mysql:

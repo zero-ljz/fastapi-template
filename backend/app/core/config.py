@@ -21,13 +21,14 @@ class Settings(BaseSettings):
 
     ROOT_PATH: Path = Path(__file__).resolve().parent.parent.parent
 
+    APP_NAME: str = "FastAPI Application"
+    APP_ENV: str = "development"
+    DEBUG: bool = True
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str
     
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8 # 60 minutes * 24 hours * 8 days = 8 days
-    SERVER_HOST: AnyHttpUrl
-
-    PROJECT_NAME: str
 
     DB_DRIVER: str = "mysql"
     DB_HOST: str = "127.0.0.1"

@@ -4,14 +4,12 @@ loguru
 orjson
 python-dotenv
 fastapi
-pydantic_settings
+pydantic-settings
 uvicorn
 python-multipart # 表单和文件支持
 
-python-jose[cryptography] # JWT生成与校验
-
-passlib # 密码哈希
-bcrypt==3.2.2 # 必须是这个版本
+pwdlib[argon2,bcrypt]
+pyjwt
 
 sqlalchemy
 alembic

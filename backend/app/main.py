@@ -1,7 +1,7 @@
 import os
 import logging
 from pathlib import Path
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.api.deps import AsyncSessionDep, SessionDep
 from app.models import User
 
-from app.api.routes import login, users
+from app.api.routes import login #, users
 
 print(f"CWD: {os.getcwd()}")
 print(f"ROOT_PATH: {settings.ROOT_PATH}")
@@ -45,7 +45,7 @@ async def log_request(request: Request, call_next):
 
 
 app.include_router(login.router)
-app.include_router(users.router)
+# app.include_router(users.router)
 
 
 app.mount(
@@ -58,10 +58,11 @@ app.mount(
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
-    file_path = settings.ROOT_PATH / "public" / full_path
+    public_path = settings.ROOT_PATH.parent / "frontend" / "dist"
+    file_path = public_path / full_path
     if file_path.is_file():
         return FileResponse(file_path)
-    index_path = settings.ROOT_PATH / "public" / "index.html"
+    index_path = public_path / "index.html"
     if not index_path.exists():
-        return {"error": "Frontend build not found"}
+        raise HTTPException(status_code=404, detail="Not Found")
     return FileResponse(index_path)

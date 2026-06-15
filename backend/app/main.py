@@ -1,58 +1,93 @@
-import os
 from contextlib import asynccontextmanager
-import logging
-from pathlib import Path
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.deps import AsyncSessionDep, SessionDep
-from app.models import User
+from app.core.logging import logger, setup_logging
+from app.core.exceptions import register_exception_handlers
+from app.api.main import api_router
 
-from app.api.routes import login
+
+# ---------------------------------------------------------------------------
+# 日志初始化
+# ---------------------------------------------------------------------------
+setup_logging()
+
+
+# ---------------------------------------------------------------------------
+# 生命周期
+# ---------------------------------------------------------------------------
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("应用启动 | {} v{} | 环境: {}", settings.PROJECT_NAME, settings.VERSION, settings.ENVIRONMENT)
     yield
-    print("正在关闭应用...")
+    logger.info("应用关闭")
 
-print(f"CWD: {os.getcwd()}")
-print(f"ROOT_PATH: {settings.ROOT_PATH}")
 
-app = FastAPI(debug=True, title="FastAPI应用")
+# ---------------------------------------------------------------------------
+# FastAPI 应用
+# ---------------------------------------------------------------------------
 
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    debug=settings.DEBUG,
+    lifespan=lifespan,
+)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 可以改成具体域名 ["http://localhost:3000"]
+    allow_origins=["*"],  # 生产环境应改为具体域名
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# 注册全局异常处理器
+register_exception_handlers(app)
+
+
+# ---------------------------------------------------------------------------
+# 请求日志中间件
+# ---------------------------------------------------------------------------
 
 @app.middleware("http")
 async def log_request(request: Request, call_next):
-    request_line = f'{request.method} {request.url.path}{request.url.query and "?" + request.url.query} {request.scope["http_version"]}'
-    headers = "\n".join(
-        [f"{key}: {value}" for key, value in sorted(request.headers.items())]
-    )
-    body = await request.body()
-    async def receive():
-        return {"type": "http.request", "body": body}
-    request._receive = receive
-    
-    response_content = f'\n{request_line}\n{headers}\n\n{body.decode(encoding="utf-8", errors="ignore")}'
-    # 打印原始请求报文
-    print("\n\n" + response_content)
-    # 继续处理请求
+    """记录每个 HTTP 请求的关键信息"""
+    # 构造请求行
+    query = f"?{request.url.query}" if request.url.query else ""
+    request_line = f"{request.method} {request.url.path}{query}"
+
+    logger.debug("→ {}", request_line)
+
     response = await call_next(request)
+
+    logger.debug("← {} | {}", request_line, response.status_code)
     return response
 
 
-app.include_router(login.router)
+# ---------------------------------------------------------------------------
+# API 路由
+# ---------------------------------------------------------------------------
 
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+# 健康检查
+@app.get(f"{settings.API_V1_STR}/health", tags=["系统"])
+async def health_check():
+    """健康检查接口"""
+    return {"status": "ok", "version": settings.VERSION}
+
+
+# ---------------------------------------------------------------------------
+# 静态文件
+# ---------------------------------------------------------------------------
 
 app.mount(
     "/static", StaticFiles(directory=settings.ROOT_PATH / "static"), name="static"
@@ -61,6 +96,10 @@ app.mount(
     "/uploads", StaticFiles(directory=settings.ROOT_PATH / "uploads"), name="uploads"
 )
 
+
+# ---------------------------------------------------------------------------
+# 前端 SPA 兜底
+# ---------------------------------------------------------------------------
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):

@@ -6,7 +6,8 @@ python-dotenv
 fastapi
 pydantic-settings
 uvicorn
-python-multipart # 表单和文件支持
+gunicorn          # 生产环境 WSGI 服务器
+python-multipart  # 表单和文件支持
 
 pwdlib[argon2,bcrypt]
 pyjwt
@@ -17,6 +18,3 @@ mysqlclient
 aiomysql
 
 faker
-
-
-

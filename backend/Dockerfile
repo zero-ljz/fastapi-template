@@ -1,42 +1,70 @@
-# 如需更多资料，请参阅 https://aka.ms/vscode-docker-python
-FROM docker.io/library/python:3.10-slim-bullseye
-
-EXPOSE 8000
+# ================================
+# 阶段一：构建阶段（安装依赖）
+# ================================
+FROM python:3.10-slim-bullseye AS builder
 
 # 防止Python在容器中生成.pyc文件
-# ENV PYTHONDONTWRITEBYTECODE=1
-
+ENV PYTHONDONTWRITEBYTECODE=1
 # 关闭缓冲以便更容易地记录容器日志
-# ENV PYTHONUNBUFFERED=1
-
-# 更新软件包索引
-RUN apt update
-
-# 设置上海时区
-RUN apt install -y tzdata
-RUN ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone
-
-# 安装编译mysqlclient所需依赖
-RUN apt install -y python3-dev default-libmysqlclient-dev build-essential pkg-config
-
-# 清理已下载的包文件
-RUN apt clean
-
+ENV PYTHONUNBUFFERED=1
 
 # 设置pip源
 RUN pip config set global.index-url https://pypi.org/simple/
 
-# 安装 pip requirements
-COPY requirements.txt .
-RUN python -m pip install -r requirements.txt
+# 安装编译mysqlclient所需的系统依赖（合并为单层以减少镜像体积）
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3-dev \
+        default-libmysqlclient-dev \
+        build-essential \
+        pkg-config \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
+# 安装 pip 依赖到指定目录，方便后续拷贝
+COPY requirements.txt /tmp/requirements.txt
+RUN python -m pip install --no-cache-dir --prefix=/install -r /tmp/requirements.txt
+
+# ================================
+# 阶段二：运行阶段（最终镜像）
+# ================================
+FROM python:3.10-slim-bullseye AS runtime
+
+# 防止Python在容器中生成.pyc文件
+ENV PYTHONDONTWRITEBYTECODE=1
+# 关闭缓冲以便更容易地记录容器日志
+ENV PYTHONUNBUFFERED=1
+
+# 安装运行时所需的系统依赖并设置时区（合并为单层以减少镜像体积）
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        tzdata \
+        default-libmysqlclient-dev \
+    && ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# 从构建阶段拷贝已安装的Python依赖
+COPY --from=builder /install /usr/local
+
+# 设置工作目录
 WORKDIR /app
+
+# 拷贝项目代码
 COPY . /app
 
-# 创建具有显式 UID 的非root用户并添加访问 /app 文件夹的权限
-# 如需更多资料，请参阅 https://aka.ms/vscode-docker-python-configure-containers
-# RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
-# USER appuser
+# 拷贝入口脚本并赋予可执行权限
+COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
+RUN chmod +x /app/scripts/entrypoint.sh
 
-# 在调试期间，这个入口点将被覆盖。 如需更多资料，请参阅 https://aka.ms/vscode-docker-python-debug
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "-k", "uvicorn.workers.UvicornWorker", "app.main:app"]
+# 创建非root用户（uid 1000）并赋予 /app 目录权限
+RUN adduser --uid 1000 --disabled-password --gecos "" appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8000
+
+# 容器入口：先执行初始化脚本，再启动应用服务
+ENTRYPOINT ["bash", "scripts/entrypoint.sh"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "-k", "uvicorn.workers.UvicornWorker", "--workers", "4", "--timeout", "120", "app.main:app"]

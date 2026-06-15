@@ -1,37 +1,87 @@
-version: '3.4'
+# ================================
+# Docker Compose 编排配置
+# ================================
 
 services:
+  # ---------- 应用服务 ----------
   app:
-    image: app
     build:
-      context: .
-      dockerfile: ./Dockerfile
-    volumes:
-      - app:/app
+      context: ./backend
+      dockerfile: Dockerfile
     env_file:
-      - .env
+      - ./backend/.env
     environment:
-      MYSQL_HOST: mysql
-      MYSQL_USER: root
-      MYSQL_PASSWORD: secret
-      MYSQL_DB: db1
-    restart: always
+      # 覆盖数据库和缓存主机为容器服务名
+      DB_HOST: mysql
+      REDIS_HOST: redis
     ports:
       - "8000:8000"
     depends_on:
-      - mysql
-
-  mysql:
-    image: mysql:8.0-bullseye
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     volumes:
-      - mysql:/var/lib/mysql
+      - app-data:/app/uploads
+      - app-logs:/app/logs
+    networks:
+      - app-network
+
+  # ---------- MySQL 数据库服务 ----------
+  mysql:
+    image: mysql:8.0
     environment:
       TZ: Asia/Shanghai
-      MYSQL_ROOT_PASSWORD: secret
-      MYSQL_DATABASE: db1
-    command: ["--max-connections=1000"]
-    restart: always
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_DATABASE: ${DB_NAME:-db1}
+    command:
+      - "--max-connections=1000"
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_unicode_ci"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    networks:
+      - app-network
 
+  # ---------- Redis 缓存服务 ----------
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
+# ---------- 持久化数据卷 ----------
 volumes:
-  app:
-  mysql:
+  app-data:
+  app-logs:
+  mysql-data:
+  redis-data:
+
+# ---------- 自定义网络 ----------
+networks:
+  app-network:
+    driver: bridge

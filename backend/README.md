@@ -1,5 +1,12 @@
 # 快速开始
 
+## 本地初次启动  
+
+在 MySQL 中创建数据库  
+mysql -u root -p -e "CREATE DATABASE db1 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+执行数据库迁移  
+alembic upgrade head
 
 ## 本地安装启动
 Windows:  
@@ -21,6 +28,8 @@ docker-compose up -d
 http://127.0.0.1:8000/docs  
 备用文档 (ReDoc):   
 http://127.0.0.1:8000/redoc  
+后台管理 (SQLAdmin):   
+http://127.0.0.1:8000/admin  
 
 
 ## 数据库迁移
@@ -29,6 +38,15 @@ alembic revision --autogenerate -m "描述"
 
 执行迁移脚本将表结构同步到数据库:   
 alembic upgrade head
+
+## 初始化数据
+如需初始化首个 SQLAdmin 超级管理员，可配置环境变量：
+
+```bash
+FIRST_SUPERUSER=admin
+FIRST_SUPERUSER_EMAIL=admin@example.com
+FIRST_SUPERUSER_PASSWORD=change-this-password
+```
 
 
 # 软件设计说明

@@ -4,6 +4,7 @@ loguru
 orjson
 python-dotenv
 fastapi
+
 pydantic-settings
 uvicorn
 gunicorn
@@ -17,4 +18,7 @@ alembic
 mysqlclient
 aiomysql
 
-
+sqladmin[full]
+fastapi-storages[full]
+itsdangerous # SessionMiddleware 需要
+wtforms>=3.1,<3.2

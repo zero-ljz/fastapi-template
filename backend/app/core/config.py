@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     DB_PASSWORD: str = ""
     DB_NAME: str = "db1"
 
+    # --- Initial superuser seed ---
+    FIRST_SUPERUSER: str = ""
+    FIRST_SUPERUSER_EMAIL: str = ""
+    FIRST_SUPERUSER_PASSWORD: str = ""
+
     # --- Redis ---
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379

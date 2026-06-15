@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.logging import logger, setup_logging
 from app.core.exceptions import register_exception_handlers
 from app.api.main import api_router
+from app.admin import register_admin
 
 
 # ---------------------------------------------------------------------------
@@ -50,6 +51,9 @@ app.add_middleware(
 
 # 注册全局异常处理器
 register_exception_handlers(app)
+
+# SQLAdmin 后台，访问路径: /admin
+register_admin(app)
 
 
 # ---------------------------------------------------------------------------

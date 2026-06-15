@@ -44,12 +44,6 @@ alembic upgrade head
 
 数据库核心表设计  
 14个
-Dictionary, System_Config, Permission, 
-User, Workspace, Role, 
-Role_Permission, User_Role, Workspace_User, 
-Notification, Operation_Log, Node, Item
-FileAsset
-
 Auth & RBAC: User, Role, Permission, RolePermission, UserRole
 System: Dictionary, SystemConfig, OperationLog
 Workspace: Workspace, WorkspaceUser
@@ -57,3 +51,6 @@ Business: Node, Item, Notification, FileAsset
 
 接口设计规范  
 采用 HTTP 状态驱动的原生 RESTful 风格，遵守 FastAPI 默认的 HTTPException 错误格式
+
+代码规范
+优先采用业界主流的最佳实践设计与标准规范

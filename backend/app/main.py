@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
@@ -10,11 +11,17 @@ from app.core.config import settings
 from app.api.deps import AsyncSessionDep, SessionDep
 from app.models import User
 
-from app.api.routes import login #, users
+from app.api.routes import login
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    print("正在关闭应用...")
 
 print(f"CWD: {os.getcwd()}")
 print(f"ROOT_PATH: {settings.ROOT_PATH}")
-app = FastAPI(debug=True, title="FastAPI模板")
+
+app = FastAPI(debug=True, title="FastAPI应用")
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,7 +52,6 @@ async def log_request(request: Request, call_next):
 
 
 app.include_router(login.router)
-# app.include_router(users.router)
 
 
 app.mount(

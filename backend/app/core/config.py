@@ -21,10 +21,11 @@ class Settings(BaseSettings):
 
     ROOT_PATH: Path = Path(__file__).resolve().parent.parent.parent
 
-    APP_NAME: str = "FastAPI Application"
-    APP_ENV: str = "development"
-    DEBUG: bool = True
+    PROJECT_NAME: str = "FastAPI Application"
+    VERSION: str
     API_V1_STR: str = "/api/v1"
+    ENVIRONMENT: str = "development"
+    DEBUG: bool = True
     
     SECRET_KEY: str
     ALGORITHM: str = "HS256"

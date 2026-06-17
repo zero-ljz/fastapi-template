@@ -7,8 +7,6 @@
 - 全局异常处理器的响应格式
 """
 
-import pytest
-
 from app.core.exceptions import (
     AppException,
     BadRequestException,
@@ -22,6 +20,7 @@ from app.core.exceptions import (
 # ===================================================================
 # 异常类属性测试
 # ===================================================================
+
 
 class TestExceptionClasses:
     """异常类基础属性验证"""
@@ -66,6 +65,7 @@ class TestExceptionClasses:
 # 全局异常处理器响应格式测试
 # ===================================================================
 
+
 class TestExceptionResponseFormat:
     """通过实际请求验证异常处理器返回的 JSON 格式"""
 
@@ -74,9 +74,7 @@ class TestExceptionResponseFormat:
         请求不存在的用户 ID，触发 NotFoundException，
         验证响应为 404 且包含 code / message 字段。
         """
-        response = client.get(
-            "/api/v1/users/99999", headers=admin_auth_headers
-        )
+        response = client.get("/api/v1/users/99999", headers=admin_auth_headers)
         assert response.status_code == 404
         data = response.json()
         assert "code" in data

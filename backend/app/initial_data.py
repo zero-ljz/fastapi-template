@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# ruff: noqa: E402
 
 """初始化种子数据。
 
@@ -44,13 +45,17 @@ DEMO_PASSWORD = "Demo123456"
 
 def init_superuser() -> None:
     if not settings.FIRST_SUPERUSER or not settings.FIRST_SUPERUSER_PASSWORD:
-        logger.info("未配置 FIRST_SUPERUSER / FIRST_SUPERUSER_PASSWORD，跳过首个超级管理员初始化")
+        logger.info(
+            "未配置 FIRST_SUPERUSER / FIRST_SUPERUSER_PASSWORD，跳过首个超级管理员初始化"
+        )
         return
 
     with SessionLocal() as db:
         existing = get_user_by_username(db, settings.FIRST_SUPERUSER)
         if existing:
-            logger.info("超级管理员已存在，跳过初始化 | username={}", settings.FIRST_SUPERUSER)
+            logger.info(
+                "超级管理员已存在，跳过初始化 | username={}", settings.FIRST_SUPERUSER
+            )
             return
 
         user = User(
@@ -204,7 +209,9 @@ def get_or_create_dictionary(
     statement = select(Dictionary).where(
         Dictionary.code == code,
         Dictionary.value.is_(value) if value is None else Dictionary.value == value,
-        Dictionary.parent_id.is_(None) if parent is None else Dictionary.parent_id == parent.id,
+        Dictionary.parent_id.is_(None)
+        if parent is None
+        else Dictionary.parent_id == parent.id,
     )
     dictionary = db.scalar(statement)
     if dictionary:
@@ -606,7 +613,12 @@ def init_seed_data() -> None:
         ]
         for permission in permissions:
             ensure_role_permission(db, super_admin, permission)
-        for permission in [workspace_menu, workspace_manage, item_manage, notification_read]:
+        for permission in [
+            workspace_menu,
+            workspace_manage,
+            item_manage,
+            notification_read,
+        ]:
             ensure_role_permission(db, workspace_admin, permission)
         for permission in [workspace_menu, item_manage, notification_read]:
             ensure_role_permission(db, project_member, permission)
@@ -619,24 +631,110 @@ def init_seed_data() -> None:
         ensure_user_role(db, member, project_member)
         ensure_user_role(db, viewer, readonly_viewer)
 
-        node_type = get_or_create_dictionary(db, code="node_type", label="节点类型", sort_order=10)
-        get_or_create_dictionary(db, code="node_type", label="项目阶段", value="phase", parent=node_type, sort_order=1)
-        get_or_create_dictionary(db, code="node_type", label="文档目录", value="folder", parent=node_type, sort_order=2)
-        item_type = get_or_create_dictionary(db, code="item_type", label="条目类型", sort_order=20)
-        get_or_create_dictionary(db, code="item_type", label="任务", value="task", parent=item_type, sort_order=1)
-        get_or_create_dictionary(db, code="item_type", label="文档", value="doc", parent=item_type, sort_order=2)
-        item_status = get_or_create_dictionary(db, code="item_status", label="条目状态", sort_order=30)
-        get_or_create_dictionary(db, code="item_status", label="待处理", value="open", parent=item_status, sort_order=1)
-        get_or_create_dictionary(db, code="item_status", label="进行中", value="in_progress", parent=item_status, sort_order=2)
-        get_or_create_dictionary(db, code="item_status", label="已完成", value="done", parent=item_status, sort_order=3)
-        priority = get_or_create_dictionary(db, code="priority", label="优先级", sort_order=40)
-        get_or_create_dictionary(db, code="priority", label="中", value="2", parent=priority, sort_order=2)
-        get_or_create_dictionary(db, code="priority", label="高", value="3", parent=priority, sort_order=3)
-        notification_type = get_or_create_dictionary(db, code="notification_type", label="通知类型", sort_order=50)
-        get_or_create_dictionary(db, code="notification_type", label="系统通知", value="system", parent=notification_type, sort_order=1)
-        get_or_create_dictionary(db, code="notification_type", label="任务通知", value="task", parent=notification_type, sort_order=2)
-        storage_type = get_or_create_dictionary(db, code="storage_type", label="存储类型", sort_order=60)
-        get_or_create_dictionary(db, code="storage_type", label="本地存储", value="local", parent=storage_type, sort_order=1)
+        node_type = get_or_create_dictionary(
+            db, code="node_type", label="节点类型", sort_order=10
+        )
+        get_or_create_dictionary(
+            db,
+            code="node_type",
+            label="项目阶段",
+            value="phase",
+            parent=node_type,
+            sort_order=1,
+        )
+        get_or_create_dictionary(
+            db,
+            code="node_type",
+            label="文档目录",
+            value="folder",
+            parent=node_type,
+            sort_order=2,
+        )
+        item_type = get_or_create_dictionary(
+            db, code="item_type", label="条目类型", sort_order=20
+        )
+        get_or_create_dictionary(
+            db,
+            code="item_type",
+            label="任务",
+            value="task",
+            parent=item_type,
+            sort_order=1,
+        )
+        get_or_create_dictionary(
+            db,
+            code="item_type",
+            label="文档",
+            value="doc",
+            parent=item_type,
+            sort_order=2,
+        )
+        item_status = get_or_create_dictionary(
+            db, code="item_status", label="条目状态", sort_order=30
+        )
+        get_or_create_dictionary(
+            db,
+            code="item_status",
+            label="待处理",
+            value="open",
+            parent=item_status,
+            sort_order=1,
+        )
+        get_or_create_dictionary(
+            db,
+            code="item_status",
+            label="进行中",
+            value="in_progress",
+            parent=item_status,
+            sort_order=2,
+        )
+        get_or_create_dictionary(
+            db,
+            code="item_status",
+            label="已完成",
+            value="done",
+            parent=item_status,
+            sort_order=3,
+        )
+        priority = get_or_create_dictionary(
+            db, code="priority", label="优先级", sort_order=40
+        )
+        get_or_create_dictionary(
+            db, code="priority", label="中", value="2", parent=priority, sort_order=2
+        )
+        get_or_create_dictionary(
+            db, code="priority", label="高", value="3", parent=priority, sort_order=3
+        )
+        notification_type = get_or_create_dictionary(
+            db, code="notification_type", label="通知类型", sort_order=50
+        )
+        get_or_create_dictionary(
+            db,
+            code="notification_type",
+            label="系统通知",
+            value="system",
+            parent=notification_type,
+            sort_order=1,
+        )
+        get_or_create_dictionary(
+            db,
+            code="notification_type",
+            label="任务通知",
+            value="task",
+            parent=notification_type,
+            sort_order=2,
+        )
+        storage_type = get_or_create_dictionary(
+            db, code="storage_type", label="存储类型", sort_order=60
+        )
+        get_or_create_dictionary(
+            db,
+            code="storage_type",
+            label="本地存储",
+            value="local",
+            parent=storage_type,
+            sort_order=1,
+        )
 
         get_or_create_system_config(
             db,
@@ -661,9 +759,15 @@ def init_seed_data() -> None:
         )
 
         workspace = get_or_create_workspace(db, owner=owner)
-        ensure_workspace_user(db, workspace=workspace, user=owner, role=WorkspaceUserRole.OWNER)
-        ensure_workspace_user(db, workspace=workspace, user=member, role=WorkspaceUserRole.MEMBER)
-        ensure_workspace_user(db, workspace=workspace, user=viewer, role=WorkspaceUserRole.VIEWER)
+        ensure_workspace_user(
+            db, workspace=workspace, user=owner, role=WorkspaceUserRole.OWNER
+        )
+        ensure_workspace_user(
+            db, workspace=workspace, user=member, role=WorkspaceUserRole.MEMBER
+        )
+        ensure_workspace_user(
+            db, workspace=workspace, user=viewer, role=WorkspaceUserRole.VIEWER
+        )
 
         planning = get_or_create_node(
             db,
@@ -763,7 +867,11 @@ def init_seed_data() -> None:
         )
 
         db.commit()
-        logger.info("初始化种子数据完成 | workspace={} | demo_password={}", workspace.code, DEMO_PASSWORD)
+        logger.info(
+            "初始化种子数据完成 | workspace={} | demo_password={}",
+            workspace.code,
+            DEMO_PASSWORD,
+        )
 
 
 def main() -> None:
@@ -774,4 +882,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

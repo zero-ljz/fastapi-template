@@ -25,6 +25,7 @@ from app.main import app
 # SQLite 仅对 "INTEGER" 类型的主键支持自增，BigInteger 会渲染为 BIGINT
 # ---------------------------------------------------------------------------
 
+
 @compiles(BigInteger, "sqlite")
 def compile_big_integer_sqlite(type_, compiler, **kw):
     return "INTEGER"
@@ -33,6 +34,7 @@ def compile_big_integer_sqlite(type_, compiler, **kw):
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="function")
 def db_session():

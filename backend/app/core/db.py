@@ -1,9 +1,9 @@
 # app/core/db.py
 
-from sqlalchemy.engine import URL
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.engine import URL
+from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 
@@ -16,11 +16,13 @@ DATABASE_URL = URL.create(
     database=settings.DB_NAME,
 )
 
-engine = create_engine(DATABASE_URL, echo=True, pool_pre_ping=True)
+engine = create_engine(DATABASE_URL, echo=settings.DEBUG, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 async_engine = create_async_engine(
-    DATABASE_URL.set(drivername="mysql+aiomysql"), echo=True, pool_pre_ping=True
+    DATABASE_URL.set(drivername="mysql+aiomysql"),
+    echo=settings.DEBUG,
+    pool_pre_ping=True,
 )
 AsyncSessionLocal = async_sessionmaker(
     bind=async_engine, autoflush=False, expire_on_commit=False

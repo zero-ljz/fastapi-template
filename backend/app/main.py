@@ -1,15 +1,15 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
-from app.core.config import settings
-from app.core.logging import logger, setup_logging
-from app.core.exceptions import register_exception_handlers
-from app.api.main import api_router
 from app.admin import register_admin
+from app.api.main import api_router
+from app.core.config import settings
+from app.core.exceptions import register_exception_handlers
+from app.core.logging import logger, setup_logging
 
 
 # ---------------------------------------------------------------------------
@@ -22,9 +22,15 @@ setup_logging()
 # 生命周期
 # ---------------------------------------------------------------------------
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("应用启动 | {} v{} | 环境: {}", settings.PROJECT_NAME, settings.VERSION, settings.ENVIRONMENT)
+    logger.info(
+        "应用启动 | {} v{} | 环境: {}",
+        settings.PROJECT_NAME,
+        settings.VERSION,
+        settings.ENVIRONMENT,
+    )
     yield
     logger.info("应用关闭")
 
@@ -43,7 +49,7 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 生产环境应改为具体域名
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,6 +65,7 @@ register_admin(app)
 # ---------------------------------------------------------------------------
 # 请求日志中间件
 # ---------------------------------------------------------------------------
+
 
 @app.middleware("http")
 async def log_request(request: Request, call_next):
@@ -104,6 +111,7 @@ app.mount(
 # ---------------------------------------------------------------------------
 # 前端 SPA 兜底
 # ---------------------------------------------------------------------------
+
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):

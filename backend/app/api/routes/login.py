@@ -45,6 +45,8 @@ async def login_access_token(
         user.id, expires_delta=access_token_expires
     )
 
-    logger.info("用户登录成功 | id={} | username={} | ip={}", user.id, user.username, client_ip)
+    logger.info(
+        "用户登录成功 | id={} | username={} | ip={}", user.id, user.username, client_ip
+    )
 
     return Token(access_token=access_token, token_type="bearer")

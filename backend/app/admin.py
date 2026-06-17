@@ -392,7 +392,11 @@ class WorkspaceUserAdmin(BaseAdmin, model=WorkspaceUser):
         WorkspaceUser.role,
         WorkspaceUser.created_at,
     ]
-    column_sortable_list = [WorkspaceUser.id, WorkspaceUser.workspace_id, WorkspaceUser.user_id]
+    column_sortable_list = [
+        WorkspaceUser.id,
+        WorkspaceUser.workspace_id,
+        WorkspaceUser.user_id,
+    ]
     column_labels = {
         WorkspaceUser.id: "ID",
         WorkspaceUser.workspace_id: "空间 ID",
@@ -491,7 +495,11 @@ class NotificationAdmin(BaseAdmin, model=Notification):
         Notification.is_read,
         Notification.created_at,
     ]
-    column_searchable_list = [Notification.title, Notification.content, Notification.type]
+    column_searchable_list = [
+        Notification.title,
+        Notification.content,
+        Notification.type,
+    ]
     column_sortable_list = [Notification.id, Notification.created_at]
     column_labels = {
         Notification.id: "ID",

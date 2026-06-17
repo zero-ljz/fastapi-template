@@ -15,18 +15,18 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import (
     BadRequestException,
     ConflictException,
-    NotFoundException,
     UnauthorizedException,
 )
 from app.core.logging import logger
 from app.core.security import get_password_hash, verify_password
 from app.models import User
-from app.schemas.user import UserCreate, UserUpdate, UserUpdatePassword, UserAdminUpdate
+from app.schemas.user import UserAdminUpdate, UserCreate, UserUpdate, UserUpdatePassword
 
 
 # ---------------------------------------------------------------------------
 # 查询
 # ---------------------------------------------------------------------------
+
 
 def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
     """按 ID 查询用户"""
@@ -35,13 +35,13 @@ def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
 
 def get_user_by_username(db: Session, username: str) -> Optional[User]:
     """按用户名查询用户"""
-    stmt = select(User).where(User.username == username, User.is_deleted == False)
+    stmt = select(User).where(User.username == username, User.is_deleted.is_(False))
     return db.execute(stmt).scalar_one_or_none()
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     """按邮箱查询用户"""
-    stmt = select(User).where(User.email == email, User.is_deleted == False)
+    stmt = select(User).where(User.email == email, User.is_deleted.is_(False))
     return db.execute(stmt).scalar_one_or_none()
 
 
@@ -54,7 +54,7 @@ def list_users(
     status: Optional[int] = None,
 ) -> tuple[list[User], int]:
     """分页查询用户列表，返回 (用户列表, 总数)"""
-    stmt = select(User).where(User.is_deleted == False)
+    stmt = select(User).where(User.is_deleted.is_(False))
 
     if keyword:
         like_pattern = f"%{keyword}%"
@@ -81,6 +81,7 @@ def list_users(
 # 创建
 # ---------------------------------------------------------------------------
 
+
 def create_user(db: Session, user_in: UserCreate) -> User:
     """创建用户（注册）"""
     # 唯一性检查
@@ -105,6 +106,7 @@ def create_user(db: Session, user_in: UserCreate) -> User:
 # ---------------------------------------------------------------------------
 # 更新
 # ---------------------------------------------------------------------------
+
 
 def update_user(db: Session, user: User, user_in: UserUpdate) -> User:
     """更新用户信息"""
@@ -158,6 +160,7 @@ def update_password(db: Session, user: User, password_in: UserUpdatePassword) ->
 # 删除
 # ---------------------------------------------------------------------------
 
+
 def delete_user(db: Session, user: User) -> None:
     """软删除用户"""
     user.is_deleted = True
@@ -169,6 +172,7 @@ def delete_user(db: Session, user: User) -> None:
 # ---------------------------------------------------------------------------
 # 认证
 # ---------------------------------------------------------------------------
+
 
 def authenticate(db: Session, username: str, password: str) -> User:
     """验证用户名 + 密码，返回用户对象"""

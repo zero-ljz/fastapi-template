@@ -28,8 +28,10 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+
 def get_url():
-    return f'mysql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}'
+    return f"mysql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+
 
 def run_migrations_offline() -> None:
     """以“离线”模式运行迁移。
@@ -62,14 +64,14 @@ def run_migrations_online() -> None:
     并将连接关联到上下文。
 
     """
-    
+
     # 获取 alembic.ini 的配置节
     configuration = config.get_section(config.config_ini_section, {})
-    
+
     # 3. 动态注入正确的数据库 URL
     url = get_url()
     configuration["sqlalchemy.url"] = url
-    
+
     # 使用注入后的配置创建引擎
     connectable = engine_from_config(
         configuration,
@@ -79,10 +81,10 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, 
+            connection=connection,
             target_metadata=target_metadata,
-            compare_type=True,              # 检查类型变化（如长度、精度）
-            compare_server_default=True,    # 检查默认值变化（如 DEFAULT 0 改为 1）
+            compare_type=True,  # 检查类型变化（如长度、精度）
+            compare_server_default=True,  # 检查默认值变化（如 DEFAULT 0 改为 1）
         )
 
         with context.begin_transaction():

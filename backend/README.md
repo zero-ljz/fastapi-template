@@ -1,65 +1,87 @@
-# 快速开始
+# FastAPI Template Backend
 
-## 本地初次启动  
+后端基于 FastAPI、SQLAlchemy 2.0、Alembic、MySQL 构建，包含用户认证、统一异常、SQLAdmin 后台、数据库迁移、种子数据和测试基础设施。
 
-在 MySQL 中创建数据库  
+## 本地启动
+
+1. 创建数据库。
+
+```bash
 mysql -u root -p -e "CREATE DATABASE db1 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
 
-修改环境变量  
-cp .env.example .env && nano .env
+2. 准备环境变量。
 
-安装依赖  
+```bash
+cp .env.example .env
+```
+
+编辑 `.env`，至少修改 `SECRET_KEY`、`DB_PASSWORD`、`FIRST_SUPERUSER_PASSWORD`。
+
+3. 安装依赖。
+
+```bash
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
 
-执行数据库迁移  
+4. 执行数据库迁移并初始化数据。
+
+```bash
 alembic upgrade head
-
-生成初始测试数据  
 python app/initial_data.py
+```
 
-启动后端服务  
+5. 启动开发服务。
+
+```bash
 python run.py
+```
 
-## 使用 Docker Compose 启动
+## Docker Compose
+
+在项目根目录运行：
+
+```bash
 docker-compose up -d
+```
 
-## 访问接口
-交互式文档 (Swagger):   
-http://127.0.0.1:8000/docs  
-备用文档 (ReDoc):   
-http://127.0.0.1:8000/redoc  
-后台管理 (SQLAdmin):   
-http://127.0.0.1:8000/admin  
+启动后访问：
 
+- Swagger: http://127.0.0.1:8000/docs
+- ReDoc: http://127.0.0.1:8000/redoc
+- SQLAdmin: http://127.0.0.1:8000/admin
 
 ## 数据库迁移
-自动生成迁移脚本:   
-alembic revision --autogenerate -m "描述"
 
-执行迁移脚本将表结构同步到数据库:   
+```bash
+alembic revision --autogenerate -m "describe_change"
 alembic upgrade head
+```
 
+## 测试与代码规范
 
-# 软件设计说明
-系统架构与模块描述  
-后端: 采用经典的分层架构并结合依赖注入机制
-前端: 采用基于组件化与状态分离的现代架构
+```bash
+pytest
+ruff check .
+```
 
-核心技术栈  
-后端: FastAPI + SQLAlchemy + Alembic + MySQL
-前端: React + TypeScript + Vite + Zustand + shadcn/ui
+## 架构说明
 
-核心业务步骤描述  
+后端采用分层结构：
 
-数据库核心表设计  
-14个
-Auth & RBAC: User, Role, Permission, RolePermission, UserRole
-System: Dictionary, SystemConfig, OperationLog
-Workspace: Workspace, WorkspaceUser
-Business: Node, Item, Notification, FileAsset
+- `app/api`: API 路由和依赖注入
+- `app/core`: 配置、数据库、日志、安全、异常、邮件
+- `app/services`: 业务逻辑
+- `app/schemas`: Pydantic 请求和响应模型
+- `app/models.py`: SQLAlchemy ORM 模型
+- `tests`: 自动化测试
 
-接口设计规范  
-采用 HTTP 状态驱动的原生 RESTful 风格，遵守 FastAPI 默认的 HTTPException 错误格式
+核心领域模型共 14 个：
 
-代码规范
-优先采用业界主流的最佳实践设计与标准规范
+- Auth & RBAC: User, Role, Permission, RolePermission, UserRole
+- System: Dictionary, SystemConfig, OperationLog
+- Workspace: Workspace, WorkspaceUser
+- Business: Node, Item, Notification, FileAsset
+
+接口遵循 REST 风格，业务异常统一返回 `code` 和 `message` 字段。

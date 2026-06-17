@@ -1,15 +1,7 @@
-# app/core/config.py
-
-import os, secrets
-from typing import Any
+import json
 from pathlib import Path
 
-from pydantic import (
-    AnyHttpUrl,
-    HttpUrl,
-    ValidationInfo,
-    field_validator,
-)
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,10 +17,16 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
-    
-    SECRET_KEY: str = "changeme"
+
+    SECRET_KEY: str = "change-me-to-a-random-secret-key-32chars-min"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+
+    BACKEND_CORS_ORIGINS: list[str] = [
+        "http://localhost",
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ]
 
     # --- Database ---
     DB_DRIVER: str = "mysql"
@@ -60,6 +58,31 @@ class Settings(BaseSettings):
 
     # --- 日志 ---
     LOG_LEVEL: str = "INFO"
+
+    # --- 文件存储 ---
+    STORAGE_BUCKET: str = ""
+    STORAGE_ACCESS_KEY: str = ""
+    STORAGE_SECRET_KEY: str = ""
+
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: str | list[str]) -> list[str]:
+        if isinstance(value, list):
+            return value
+        if not value:
+            return []
+
+        value = value.strip()
+        if value.startswith("["):
+            return json.loads(value)
+        return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def validate_secret_key(cls, value: str) -> str:
+        if len(value) < 32:
+            raise ValueError("SECRET_KEY must be at least 32 characters long")
+        return value
 
     @property
     def smtp_enabled(self) -> bool:

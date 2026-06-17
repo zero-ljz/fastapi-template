@@ -31,6 +31,7 @@ from app.core.logging import logger
 # 异常类
 # ---------------------------------------------------------------------------
 
+
 class AppException(Exception):
     """应用异常基类"""
 
@@ -57,6 +58,7 @@ class AppException(Exception):
 
 class BadRequestException(AppException):
     """400 — 请求参数错误"""
+
     status_code = 400
     detail = "请求参数错误"
     error_code = "BAD_REQUEST"
@@ -64,6 +66,7 @@ class BadRequestException(AppException):
 
 class UnauthorizedException(AppException):
     """401 — 未认证"""
+
     status_code = 401
     detail = "未认证，请先登录"
     error_code = "UNAUTHORIZED"
@@ -71,6 +74,7 @@ class UnauthorizedException(AppException):
 
 class ForbiddenException(AppException):
     """403 — 权限不足"""
+
     status_code = 403
     detail = "权限不足"
     error_code = "FORBIDDEN"
@@ -78,6 +82,7 @@ class ForbiddenException(AppException):
 
 class NotFoundException(AppException):
     """404 — 资源不存在"""
+
     status_code = 404
     detail = "资源不存在"
     error_code = "NOT_FOUND"
@@ -85,6 +90,7 @@ class NotFoundException(AppException):
 
 class ConflictException(AppException):
     """409 — 资源冲突"""
+
     status_code = 409
     detail = "资源冲突"
     error_code = "CONFLICT"
@@ -92,6 +98,7 @@ class ConflictException(AppException):
 
 class InternalServerException(AppException):
     """500 — 服务器内部错误"""
+
     status_code = 500
     detail = "服务器内部错误"
     error_code = "INTERNAL_ERROR"
@@ -101,11 +108,14 @@ class InternalServerException(AppException):
 # 全局异常处理器注册
 # ---------------------------------------------------------------------------
 
+
 def register_exception_handlers(app: FastAPI) -> None:
     """在 FastAPI 应用上注册全局异常处理器"""
 
     @app.exception_handler(AppException)
-    async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
+    async def app_exception_handler(
+        request: Request, exc: AppException
+    ) -> JSONResponse:
         """处理所有 AppException 子类"""
         logger.warning(
             "AppException | {method} {path} | {status} | {detail}",
@@ -127,7 +137,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(Exception)
-    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    async def unhandled_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
         """兜底：处理所有未捕获的异常"""
         logger.exception(
             "Unhandled Exception | {method} {path} | {exc}",

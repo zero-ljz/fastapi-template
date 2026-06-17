@@ -17,7 +17,6 @@ from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
 
 from app.core.db import SessionLocal, AsyncSessionLocal
-from app.core import security
 from app.core.config import settings
 from app.core.logging import logger
 from app.models import User
@@ -31,6 +30,7 @@ reusable_oauth2 = OAuth2PasswordBearer(
 # ---------------------------------------------------------------------------
 # 数据库会话
 # ---------------------------------------------------------------------------
+
 
 def get_session() -> Generator[Session, None, None]:
     with SessionLocal() as session:
@@ -50,6 +50,7 @@ TokenDep = Annotated[str, Depends(reusable_oauth2)]
 # ---------------------------------------------------------------------------
 # 当前用户
 # ---------------------------------------------------------------------------
+
 
 def get_current_user(db: SessionDep, token: TokenDep) -> User:
     """从 JWT Token 解析并返回当前用户"""
@@ -88,7 +89,5 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 def get_current_active_superuser(current_user: CurrentUser) -> User:
     """要求当前用户是超级管理员"""
     if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403, detail="权限不足，需要管理员权限"
-        )
+        raise HTTPException(status_code=403, detail="权限不足，需要管理员权限")
     return current_user

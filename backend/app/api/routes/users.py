@@ -22,7 +22,6 @@ from fastapi import APIRouter, BackgroundTasks, Query
 from app.api.deps import CurrentUser, SessionDep
 from app.core.email import send_welcome_email
 from app.core.exceptions import ForbiddenException, NotFoundException
-from app.core.logging import logger
 from app.schemas.user import (
     UserCreate,
     UserListResponse,
@@ -39,6 +38,7 @@ router = APIRouter(prefix="/users", tags=["用户管理"])
 # 公开接口
 # ---------------------------------------------------------------------------
 
+
 @router.post("/register", response_model=UserRead, summary="用户注册")
 async def register(
     *,
@@ -51,7 +51,9 @@ async def register(
 
     # 异步发送欢迎邮件
     if user.email:
-        background_tasks.add_task(send_welcome_email, to=user.email, username=user.username)
+        background_tasks.add_task(
+            send_welcome_email, to=user.email, username=user.username
+        )
 
     return user
 
@@ -59,6 +61,7 @@ async def register(
 # ---------------------------------------------------------------------------
 # 当前用户接口
 # ---------------------------------------------------------------------------
+
 
 @router.get("/me", response_model=UserRead, summary="获取当前用户信息")
 async def get_current_user_info(current_user: CurrentUser):
@@ -92,6 +95,7 @@ async def update_current_user_password(
 # ---------------------------------------------------------------------------
 # 管理员接口
 # ---------------------------------------------------------------------------
+
 
 @router.get("", response_model=UserListResponse, summary="用户列表（管理员）")
 async def list_users(

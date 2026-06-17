@@ -17,7 +17,6 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     DateTime,
-    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -38,8 +37,10 @@ from sqlalchemy.orm import (
 # Base
 # ---------------------------------------------------------------------------
 
+
 class Base(DeclarativeBase):
     """Declarative base with common audit columns."""
+
     pass
 
 
@@ -77,36 +78,65 @@ class SoftDeleteMixin:
 # Auth & RBAC
 # ===================================================================
 
+
 class User(TimestampMixin, SoftDeleteMixin, Base):
     """系统用户"""
 
     __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, comment="用户名")
-    email: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True, comment="邮箱")
-    phone: Mapped[Optional[str]] = mapped_column(String(32), unique=True, nullable=True, comment="手机号")
-    password: Mapped[str] = mapped_column(String(255), nullable=False, comment="密码哈希")
-    nickname: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="昵称")
-    avatar_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="头像URL")
+    username: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, comment="用户名"
+    )
+    email: Mapped[Optional[str]] = mapped_column(
+        String(255), unique=True, nullable=True, comment="邮箱"
+    )
+    phone: Mapped[Optional[str]] = mapped_column(
+        String(32), unique=True, nullable=True, comment="手机号"
+    )
+    password: Mapped[str] = mapped_column(
+        String(255), nullable=False, comment="密码哈希"
+    )
+    nickname: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="昵称"
+    )
+    avatar_url: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True, comment="头像URL"
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, comment="是否激活")
-    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否超级用户")
+    is_superuser: Mapped[bool] = mapped_column(
+        Boolean, default=False, comment="是否超级用户"
+    )
     status: Mapped[int] = mapped_column(
-        Integer, default=1, server_default="1", nullable=False,
+        Integer,
+        default=1,
+        server_default="1",
+        nullable=False,
         comment="状态 0-禁用 1-启用",
     )
-    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, comment="最后登录时间")
-    last_login_ip: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="最后登录IP")
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="最后登录时间"
+    )
+    last_login_ip: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="最后登录IP"
+    )
 
     # --- relationships ---
-    user_roles: Mapped[List["UserRole"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    roles: Mapped[List["Role"]] = relationship(
-        secondary="user_role", viewonly=True, lazy="selectin",
+    user_roles: Mapped[List["UserRole"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
     )
-    workspace_users: Mapped[List["WorkspaceUser"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    roles: Mapped[List["Role"]] = relationship(
+        secondary="user_role",
+        viewonly=True,
+        lazy="selectin",
+    )
+    workspace_users: Mapped[List["WorkspaceUser"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     operation_logs: Mapped[List["OperationLog"]] = relationship(back_populates="user")
     notifications: Mapped[List["Notification"]] = relationship(
-        back_populates="user", foreign_keys="Notification.user_id",
+        back_populates="user",
+        foreign_keys="Notification.user_id",
     )
 
     __table_args__ = (
@@ -124,25 +154,38 @@ class Role(TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "role"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, comment="角色编码")
+    code: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, comment="角色编码"
+    )
     name: Mapped[str] = mapped_column(String(128), nullable=False, comment="角色名称")
-    description: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="描述")
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0", comment="排序")
+    description: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True, comment="描述"
+    )
+    sort_order: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", comment="排序"
+    )
     status: Mapped[int] = mapped_column(
-        Integer, default=1, server_default="1", nullable=False,
+        Integer,
+        default=1,
+        server_default="1",
+        nullable=False,
         comment="状态 0-禁用 1-启用",
     )
 
     # --- relationships ---
-    user_roles: Mapped[List["UserRole"]] = relationship(back_populates="role", cascade="all, delete-orphan")
-    role_permissions: Mapped[List["RolePermission"]] = relationship(back_populates="role", cascade="all, delete-orphan")
+    user_roles: Mapped[List["UserRole"]] = relationship(
+        back_populates="role", cascade="all, delete-orphan"
+    )
+    role_permissions: Mapped[List["RolePermission"]] = relationship(
+        back_populates="role", cascade="all, delete-orphan"
+    )
     permissions: Mapped[List["Permission"]] = relationship(
-        secondary="role_permission", viewonly=True, lazy="selectin",
+        secondary="role_permission",
+        viewonly=True,
+        lazy="selectin",
     )
 
-    __table_args__ = (
-        {"comment": "角色表"},
-    )
+    __table_args__ = ({"comment": "角色表"},)
 
     def __str__(self) -> str:
         name = self.name or f"角色#{self.id}"
@@ -156,28 +199,51 @@ class Permission(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     parent_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("permission.id", ondelete="SET NULL"), nullable=True, comment="父级ID",
+        BigInteger,
+        ForeignKey("permission.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="父级ID",
     )
-    code: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, comment="权限编码")
+    code: Mapped[str] = mapped_column(
+        String(128), unique=True, nullable=False, comment="权限编码"
+    )
     name: Mapped[str] = mapped_column(String(128), nullable=False, comment="权限名称")
     type: Mapped[str] = mapped_column(
-        String(16), nullable=False, comment="权限类型 menu / button / api",
+        String(16),
+        nullable=False,
+        comment="权限类型 menu / button / api",
     )
-    path: Mapped[Optional[str]] = mapped_column(String(256), nullable=True, comment="前端路由/接口路径")
-    method: Mapped[Optional[str]] = mapped_column(String(16), nullable=True, comment="HTTP Method (GET/POST/...)")
-    icon: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, comment="图标")
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0", comment="排序")
+    path: Mapped[Optional[str]] = mapped_column(
+        String(256), nullable=True, comment="前端路由/接口路径"
+    )
+    method: Mapped[Optional[str]] = mapped_column(
+        String(16), nullable=True, comment="HTTP Method (GET/POST/...)"
+    )
+    icon: Mapped[Optional[str]] = mapped_column(
+        String(128), nullable=True, comment="图标"
+    )
+    sort_order: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", comment="排序"
+    )
     status: Mapped[int] = mapped_column(
-        Integer, default=1, server_default="1", nullable=False,
+        Integer,
+        default=1,
+        server_default="1",
+        nullable=False,
         comment="状态 0-禁用 1-启用",
     )
 
     # --- relationships ---
-    children: Mapped[List["Permission"]] = relationship(back_populates="parent", lazy="selectin")
-    parent: Mapped[Optional["Permission"]] = relationship(
-        back_populates="children", remote_side=[id],
+    children: Mapped[List["Permission"]] = relationship(
+        back_populates="parent", lazy="selectin"
     )
-    role_permissions: Mapped[List["RolePermission"]] = relationship(back_populates="permission")
+    parent: Mapped[Optional["Permission"]] = relationship(
+        back_populates="children",
+        remote_side=[id],
+    )
+    role_permissions: Mapped[List["RolePermission"]] = relationship(
+        back_populates="permission"
+    )
 
     __table_args__ = (
         Index("ix_permission_parent_id", "parent_id"),
@@ -197,10 +263,14 @@ class RolePermission(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     role_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("role.id", ondelete="CASCADE"), nullable=False,
+        BigInteger,
+        ForeignKey("role.id", ondelete="CASCADE"),
+        nullable=False,
     )
     permission_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("permission.id", ondelete="CASCADE"), nullable=False,
+        BigInteger,
+        ForeignKey("permission.id", ondelete="CASCADE"),
+        nullable=False,
     )
 
     # --- relationships ---
@@ -225,10 +295,14 @@ class UserRole(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False,
+        BigInteger,
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
     )
     role_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("role.id", ondelete="CASCADE"), nullable=False,
+        BigInteger,
+        ForeignKey("role.id", ondelete="CASCADE"),
+        nullable=False,
     )
 
     # --- relationships ---
@@ -250,6 +324,7 @@ class UserRole(TimestampMixin, Base):
 # System
 # ===================================================================
 
+
 class Dictionary(TimestampMixin, SoftDeleteMixin, Base):
     """数据字典 — 两级结构: 字典类型 (parent_id=NULL) → 字典条目"""
 
@@ -257,23 +332,39 @@ class Dictionary(TimestampMixin, SoftDeleteMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     parent_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("dictionary.id", ondelete="CASCADE"), nullable=True,
+        BigInteger,
+        ForeignKey("dictionary.id", ondelete="CASCADE"),
+        nullable=True,
         comment="父级ID, NULL 表示字典类型",
     )
-    code: Mapped[str] = mapped_column(String(128), nullable=False, comment="编码 / 字典类型编码")
+    code: Mapped[str] = mapped_column(
+        String(128), nullable=False, comment="编码 / 字典类型编码"
+    )
     label: Mapped[str] = mapped_column(String(256), nullable=False, comment="显示文本")
-    value: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="字典值")
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0", comment="排序")
+    value: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True, comment="字典值"
+    )
+    sort_order: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", comment="排序"
+    )
     status: Mapped[int] = mapped_column(
-        Integer, default=1, server_default="1", nullable=False,
+        Integer,
+        default=1,
+        server_default="1",
+        nullable=False,
         comment="状态 0-禁用 1-启用",
     )
-    remark: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="备注")
+    remark: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True, comment="备注"
+    )
 
     # --- relationships ---
-    children: Mapped[List["Dictionary"]] = relationship(back_populates="parent", lazy="selectin")
+    children: Mapped[List["Dictionary"]] = relationship(
+        back_populates="parent", lazy="selectin"
+    )
     parent: Mapped[Optional["Dictionary"]] = relationship(
-        back_populates="children", remote_side=[id],
+        back_populates="children",
+        remote_side=[id],
     )
 
     __table_args__ = (
@@ -293,17 +384,24 @@ class SystemConfig(TimestampMixin, Base):
     __tablename__ = "system_config"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    config_key: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, comment="配置键")
-    config_value: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="配置值 (JSON / 纯文本)")
-    description: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="描述")
+    config_key: Mapped[str] = mapped_column(
+        String(128), unique=True, nullable=False, comment="配置键"
+    )
+    config_value: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="配置值 (JSON / 纯文本)"
+    )
+    description: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True, comment="描述"
+    )
     is_public: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default="0", nullable=False,
+        Boolean,
+        default=False,
+        server_default="0",
+        nullable=False,
         comment="是否前端可见",
     )
 
-    __table_args__ = (
-        {"comment": "系统配置表"},
-    )
+    __table_args__ = ({"comment": "系统配置表"},)
 
     def __str__(self) -> str:
         return self.config_key or f"配置#{self.id}"
@@ -316,26 +414,57 @@ class OperationLog(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, comment="操作人ID",
+        BigInteger,
+        ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="操作人ID",
     )
-    username: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="操作人用户名(冗余)")
-    module: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="模块")
+    username: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="操作人用户名(冗余)"
+    )
+    module: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="模块"
+    )
     action: Mapped[str] = mapped_column(String(64), nullable=False, comment="操作类型")
-    target_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="目标资源类型")
-    target_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="目标资源ID")
-    ip: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="请求IP")
-    user_agent: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="User-Agent")
-    request_method: Mapped[Optional[str]] = mapped_column(String(16), nullable=True, comment="HTTP Method")
-    request_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="请求路径")
-    request_body: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="请求参数(脱敏)")
-    response_code: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="响应状态码")
-    detail: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="详情 / 备注")
+    target_type: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="目标资源类型"
+    )
+    target_id: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="目标资源ID"
+    )
+    ip: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="请求IP"
+    )
+    user_agent: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True, comment="User-Agent"
+    )
+    request_method: Mapped[Optional[str]] = mapped_column(
+        String(16), nullable=True, comment="HTTP Method"
+    )
+    request_url: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True, comment="请求路径"
+    )
+    request_body: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="请求参数(脱敏)"
+    )
+    response_code: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True, comment="响应状态码"
+    )
+    detail: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="详情 / 备注"
+    )
     status: Mapped[int] = mapped_column(
-        Integer, default=1, server_default="1", nullable=False,
+        Integer,
+        default=1,
+        server_default="1",
+        nullable=False,
         comment="执行结果 0-失败 1-成功",
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), nullable=False, comment="操作时间",
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+        comment="操作时间",
     )
 
     # --- relationships ---
@@ -358,6 +487,7 @@ class OperationLog(Base):
 # Workspace
 # ===================================================================
 
+
 class Workspace(TimestampMixin, SoftDeleteMixin, Base):
     """工作空间 / 团队"""
 
@@ -365,21 +495,34 @@ class Workspace(TimestampMixin, SoftDeleteMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(128), nullable=False, comment="空间名称")
-    code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, comment="空间编码(URL slug)")
-    description: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="描述")
-    logo_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="Logo URL")
+    code: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, comment="空间编码(URL slug)"
+    )
+    description: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True, comment="描述"
+    )
+    logo_url: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True, comment="Logo URL"
+    )
     owner_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("user.id", ondelete="RESTRICT"), nullable=False, comment="拥有者",
+        BigInteger,
+        ForeignKey("user.id", ondelete="RESTRICT"),
+        nullable=False,
+        comment="拥有者",
     )
     status: Mapped[int] = mapped_column(
-        Integer, default=1, server_default="1", nullable=False,
+        Integer,
+        default=1,
+        server_default="1",
+        nullable=False,
         comment="状态 0-归档 1-活跃",
     )
 
     # --- relationships ---
     owner: Mapped["User"] = relationship(foreign_keys=[owner_id])
     workspace_users: Mapped[List["WorkspaceUser"]] = relationship(
-        back_populates="workspace", cascade="all, delete-orphan",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
     )
     nodes: Mapped[List["Node"]] = relationship(back_populates="workspace")
     items: Mapped[List["Item"]] = relationship(back_populates="workspace")
@@ -397,6 +540,7 @@ class Workspace(TimestampMixin, SoftDeleteMixin, Base):
 
 class WorkspaceUserRole(str, enum.Enum):
     """工作空间内角色"""
+
     OWNER = "owner"
     ADMIN = "admin"
     MEMBER = "member"
@@ -410,15 +554,21 @@ class WorkspaceUser(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     workspace_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False,
+        BigInteger,
+        ForeignKey("workspace.id", ondelete="CASCADE"),
+        nullable=False,
     )
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False,
+        BigInteger,
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
     )
     role: Mapped[str] = mapped_column(
-        String(16), default=WorkspaceUserRole.MEMBER.value,
+        String(16),
+        default=WorkspaceUserRole.MEMBER.value,
         server_default=WorkspaceUserRole.MEMBER.value,
-        nullable=False, comment="空间角色 owner/admin/member/viewer",
+        nullable=False,
+        comment="空间角色 owner/admin/member/viewer",
     )
 
     # --- relationships ---
@@ -440,6 +590,7 @@ class WorkspaceUser(TimestampMixin, Base):
 # Business
 # ===================================================================
 
+
 class Node(TimestampMixin, SoftDeleteMixin, Base):
     """节点 — 树形业务对象 (文件夹 / 分类 / 流程节点等)"""
 
@@ -447,29 +598,48 @@ class Node(TimestampMixin, SoftDeleteMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     workspace_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False, comment="所属工作空间",
+        BigInteger,
+        ForeignKey("workspace.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="所属工作空间",
     )
     parent_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("node.id", ondelete="SET NULL"), nullable=True, comment="父节点",
+        BigInteger,
+        ForeignKey("node.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="父节点",
     )
     name: Mapped[str] = mapped_column(String(256), nullable=False, comment="节点名称")
     type: Mapped[str] = mapped_column(String(32), nullable=False, comment="节点类型")
-    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0", comment="排序")
+    sort_order: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", comment="排序"
+    )
     status: Mapped[int] = mapped_column(
-        Integer, default=1, server_default="1", nullable=False,
+        Integer,
+        default=1,
+        server_default="1",
+        nullable=False,
         comment="状态 0-禁用 1-启用",
     )
-    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="扩展属性 (JSON)")
+    metadata_json: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="扩展属性 (JSON)"
+    )
     created_by: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, comment="创建人",
+        BigInteger,
+        ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="创建人",
     )
 
     # --- relationships ---
     workspace: Mapped["Workspace"] = relationship(back_populates="nodes")
     parent: Mapped[Optional["Node"]] = relationship(
-        back_populates="children", remote_side=[id],
+        back_populates="children",
+        remote_side=[id],
     )
-    children: Mapped[List["Node"]] = relationship(back_populates="parent", lazy="selectin")
+    children: Mapped[List["Node"]] = relationship(
+        back_populates="parent", lazy="selectin"
+    )
     creator: Mapped[Optional["User"]] = relationship(foreign_keys=[created_by])
     items: Mapped[List["Item"]] = relationship(back_populates="node")
 
@@ -492,28 +662,53 @@ class Item(TimestampMixin, SoftDeleteMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     workspace_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False, comment="所属工作空间",
+        BigInteger,
+        ForeignKey("workspace.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="所属工作空间",
     )
     node_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("node.id", ondelete="SET NULL"), nullable=True, comment="所属节点",
+        BigInteger,
+        ForeignKey("node.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="所属节点",
     )
     title: Mapped[str] = mapped_column(String(512), nullable=False, comment="标题")
-    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="正文 / 富文本")
+    content: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="正文 / 富文本"
+    )
     type: Mapped[str] = mapped_column(String(32), nullable=False, comment="条目类型")
     priority: Mapped[int] = mapped_column(
-        Integer, default=0, server_default="0", nullable=False, comment="优先级 0-无 1-低 2-中 3-高 4-紧急",
+        Integer,
+        default=0,
+        server_default="0",
+        nullable=False,
+        comment="优先级 0-无 1-低 2-中 3-高 4-紧急",
     )
     status: Mapped[str] = mapped_column(
-        String(32), default="open", server_default="open", nullable=False,
+        String(32),
+        default="open",
+        server_default="open",
+        nullable=False,
         comment="状态 (open / in_progress / done / closed …)",
     )
     assignee_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, comment="负责人",
+        BigInteger,
+        ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="负责人",
     )
-    due_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, comment="截止时间")
-    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="扩展属性 (JSON)")
+    due_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="截止时间"
+    )
+    metadata_json: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="扩展属性 (JSON)"
+    )
     created_by: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, comment="创建人",
+        BigInteger,
+        ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="创建人",
     )
 
     # --- relationships ---
@@ -543,26 +738,49 @@ class Notification(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, comment="接收人",
+        BigInteger,
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="接收人",
     )
     title: Mapped[str] = mapped_column(String(256), nullable=False, comment="标题")
-    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="通知内容")
+    content: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="通知内容"
+    )
     type: Mapped[str] = mapped_column(
-        String(32), default="system", server_default="system", nullable=False,
+        String(32),
+        default="system",
+        server_default="system",
+        nullable=False,
         comment="类型 system / mention / task / …",
     )
     is_read: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default="0", nullable=False, comment="已读",
+        Boolean,
+        default=False,
+        server_default="0",
+        nullable=False,
+        comment="已读",
     )
-    read_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, comment="阅读时间")
-    source_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="来源类型")
-    source_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="来源ID")
+    read_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="阅读时间"
+    )
+    source_type: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="来源类型"
+    )
+    source_id: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="来源ID"
+    )
     sender_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, comment="发送人",
+        BigInteger,
+        ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="发送人",
     )
 
     # --- relationships ---
-    user: Mapped["User"] = relationship(back_populates="notifications", foreign_keys=[user_id])
+    user: Mapped["User"] = relationship(
+        back_populates="notifications", foreign_keys=[user_id]
+    )
     sender: Mapped[Optional["User"]] = relationship(foreign_keys=[sender_id])
 
     __table_args__ = (
@@ -584,25 +802,50 @@ class FileAsset(TimestampMixin, SoftDeleteMixin, Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     workspace_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("workspace.id", ondelete="SET NULL"), nullable=True, comment="所属工作空间",
+        BigInteger,
+        ForeignKey("workspace.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="所属工作空间",
     )
-    original_name: Mapped[str] = mapped_column(String(512), nullable=False, comment="原始文件名")
-    storage_path: Mapped[str] = mapped_column(String(1024), nullable=False, comment="存储路径 / Object Key")
-    file_size: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False, comment="文件大小(bytes)")
-    mime_type: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, comment="MIME 类型")
-    file_hash: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, comment="文件哈希 (MD5/SHA256)")
+    original_name: Mapped[str] = mapped_column(
+        String(512), nullable=False, comment="原始文件名"
+    )
+    storage_path: Mapped[str] = mapped_column(
+        String(1024), nullable=False, comment="存储路径 / Object Key"
+    )
+    file_size: Mapped[int] = mapped_column(
+        BigInteger, default=0, nullable=False, comment="文件大小(bytes)"
+    )
+    mime_type: Mapped[Optional[str]] = mapped_column(
+        String(128), nullable=True, comment="MIME 类型"
+    )
+    file_hash: Mapped[Optional[str]] = mapped_column(
+        String(128), nullable=True, comment="文件哈希 (MD5/SHA256)"
+    )
     storage_type: Mapped[str] = mapped_column(
-        String(16), default="local", server_default="local", nullable=False,
+        String(16),
+        default="local",
+        server_default="local",
+        nullable=False,
         comment="存储类型 local / s3 / oss / …",
     )
-    target_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="关联资源类型")
-    target_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, comment="关联资源ID")
+    target_type: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="关联资源类型"
+    )
+    target_id: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="关联资源ID"
+    )
     uploaded_by: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("user.id", ondelete="SET NULL"), nullable=True, comment="上传人",
+        BigInteger,
+        ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="上传人",
     )
 
     # --- relationships ---
-    workspace: Mapped[Optional["Workspace"]] = relationship(back_populates="file_assets")
+    workspace: Mapped[Optional["Workspace"]] = relationship(
+        back_populates="file_assets"
+    )
     uploader: Mapped[Optional["User"]] = relationship(foreign_keys=[uploaded_by])
 
     __table_args__ = (

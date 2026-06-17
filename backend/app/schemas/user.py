@@ -7,15 +7,17 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # ---------------------------------------------------------------------------
 # 请求 Schemas
 # ---------------------------------------------------------------------------
 
+
 class UserCreate(BaseModel):
     """用户注册"""
+
     username: str = Field(..., min_length=3, max_length=64, description="用户名")
     password: str = Field(..., min_length=6, max_length=128, description="密码")
     email: Optional[str] = Field(None, max_length=255, description="邮箱")
@@ -31,6 +33,7 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     """更新用户信息"""
+
     nickname: Optional[str] = Field(None, max_length=64, description="昵称")
     email: Optional[str] = Field(None, max_length=255, description="邮箱")
     phone: Optional[str] = Field(None, max_length=32, description="手机号")
@@ -39,12 +42,14 @@ class UserUpdate(BaseModel):
 
 class UserUpdatePassword(BaseModel):
     """修改密码"""
+
     old_password: str = Field(..., min_length=6, max_length=128, description="旧密码")
     new_password: str = Field(..., min_length=6, max_length=128, description="新密码")
 
 
 class UserAdminUpdate(BaseModel):
     """管理员更新用户"""
+
     nickname: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
@@ -57,8 +62,10 @@ class UserAdminUpdate(BaseModel):
 # 响应 Schemas
 # ---------------------------------------------------------------------------
 
+
 class UserRead(BaseModel):
     """用户信息（脱敏返回）"""
+
     id: int
     username: str
     email: Optional[str] = None
@@ -77,6 +84,7 @@ class UserRead(BaseModel):
 
 class UserListResponse(BaseModel):
     """用户分页列表"""
+
     items: list[UserRead]
     total: int
     page: int

@@ -5,12 +5,11 @@
 - 注册 / 登录 / 当前用户 / 修改密码 / 管理员操作
 """
 
-import pytest
-
 
 # ===================================================================
 # 注册
 # ===================================================================
+
 
 class TestRegister:
     """用户注册相关测试"""
@@ -71,6 +70,7 @@ class TestRegister:
 # 登录
 # ===================================================================
 
+
 class TestLogin:
     """登录相关测试"""
 
@@ -106,6 +106,7 @@ class TestLogin:
 # 当前用户
 # ===================================================================
 
+
 class TestCurrentUser:
     """当前用户相关测试"""
 
@@ -138,6 +139,7 @@ class TestCurrentUser:
 # 修改密码
 # ===================================================================
 
+
 class TestPassword:
     """密码修改相关测试"""
 
@@ -164,6 +166,7 @@ class TestPassword:
 # 管理员操作
 # ===================================================================
 
+
 class TestAdminUsers:
     """管理员用户管理测试"""
 
@@ -183,9 +186,7 @@ class TestAdminUsers:
     def test_admin_get_user(self, client, admin_auth_headers, test_user):
         """管理员按 ID 查询用户"""
         user_id = test_user.id
-        response = client.get(
-            f"/api/v1/users/{user_id}", headers=admin_auth_headers
-        )
+        response = client.get(f"/api/v1/users/{user_id}", headers=admin_auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == user_id

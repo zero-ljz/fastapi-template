@@ -15,7 +15,6 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
-from typing import Optional
 
 from app.core.config import settings
 from app.core.logging import logger
@@ -27,6 +26,7 @@ TEMPLATES_DIR = Path(__file__).parent / "templates"
 # ---------------------------------------------------------------------------
 # 核心发送函数
 # ---------------------------------------------------------------------------
+
 
 def _send_email_sync(
     to: str,
@@ -42,21 +42,27 @@ def _send_email_sync(
 
     try:
         if settings.SMTP_TLS:
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=30) as server:
+            with smtplib.SMTP(
+                settings.SMTP_HOST, settings.SMTP_PORT, timeout=30
+            ) as server:
                 server.ehlo()
                 server.starttls()
                 server.ehlo()
                 server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
                 server.sendmail(settings.EMAILS_FROM_EMAIL, [to], msg.as_string())
         else:
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=30) as server:
+            with smtplib.SMTP(
+                settings.SMTP_HOST, settings.SMTP_PORT, timeout=30
+            ) as server:
                 server.ehlo()
                 if settings.SMTP_USER:
                     server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
                 server.sendmail(settings.EMAILS_FROM_EMAIL, [to], msg.as_string())
         logger.info("邮件发送成功 | to={} | subject={}", to, subject)
     except Exception as e:
-        logger.error("邮件发送失败 | to={} | subject={} | error={}", to, subject, str(e))
+        logger.error(
+            "邮件发送失败 | to={} | subject={} | error={}", to, subject, str(e)
+        )
         raise
 
 
@@ -77,13 +83,14 @@ async def send_email(
 # 模板渲染辅助
 # ---------------------------------------------------------------------------
 
+
 def _render_template(template_name: str, **kwargs: str) -> str:
     """读取 HTML 模板并替换占位符"""
     template_path = TEMPLATES_DIR / template_name
     if not template_path.exists():
         logger.error("邮件模板不存在: {}", template_path)
         raise FileNotFoundError(f"邮件模板不存在: {template_path}")
-    
+
     html = template_path.read_text(encoding="utf-8")
     for key, value in kwargs.items():
         html = html.replace(f"{{{{{key}}}}}", value)
@@ -93,6 +100,7 @@ def _render_template(template_name: str, **kwargs: str) -> str:
 # ---------------------------------------------------------------------------
 # 业务邮件
 # ---------------------------------------------------------------------------
+
 
 async def send_welcome_email(to: str, username: str) -> None:
     """发送注册欢迎邮件"""
@@ -108,9 +116,7 @@ async def send_welcome_email(to: str, username: str) -> None:
     )
 
 
-async def send_password_reset_email(
-    to: str, username: str, token: str
-) -> None:
+async def send_password_reset_email(to: str, username: str, token: str) -> None:
     """发送密码重置邮件"""
     html = _render_template(
         "reset_password.html",

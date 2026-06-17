@@ -10,7 +10,6 @@
 
 import logging
 import sys
-from pathlib import Path
 
 from loguru import logger
 
@@ -20,6 +19,7 @@ from app.core.config import settings
 # ---------------------------------------------------------------------------
 # 拦截标准库 logging → 转发到 loguru
 # ---------------------------------------------------------------------------
+
 
 class InterceptHandler(logging.Handler):
     """将 stdlib logging 的日志拦截并转发给 loguru"""
@@ -73,16 +73,22 @@ def setup_logging() -> None:
         str(log_dir / "{time:YYYY-MM-DD}.log"),
         level=log_level,
         format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} — {message}",
-        rotation="00:00",       # 每天午夜轮转
-        retention="30 days",    # 保留 30 天
-        compression="gz",       # 压缩旧日志
+        rotation="00:00",  # 每天午夜轮转
+        retention="30 days",  # 保留 30 天
+        compression="gz",  # 压缩旧日志
         encoding="utf-8",
-        enqueue=True,           # 线程安全
+        enqueue=True,  # 线程安全
     )
 
     # 拦截 uvicorn / sqlalchemy / alembic 等标准库日志
-    for name in ("uvicorn", "uvicorn.error", "uvicorn.access",
-                 "sqlalchemy.engine", "alembic", "fastapi"):
+    for name in (
+        "uvicorn",
+        "uvicorn.error",
+        "uvicorn.access",
+        "sqlalchemy.engine",
+        "alembic",
+        "fastapi",
+    ):
         logging.getLogger(name).handlers = [InterceptHandler()]
         logging.getLogger(name).propagate = False
 

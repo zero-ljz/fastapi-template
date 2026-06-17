@@ -2,9 +2,9 @@
 SQLAlchemy 2.0 ORM Models
 Domains:
   - Auth & RBAC : User, Role, Permission, RolePermission, UserRole
-  - System      : Dictionary, SystemConfig, OperationLog
+  - System      : Dictionary, SystemSetting, OperationLog, Notification, FileAsset
   - Workspace   : Workspace, WorkspaceUser
-  - Business    : Node, Item, Notification, FileAsset
+  - Business    : Node, Item
 """
 
 from __future__ import annotations
@@ -378,17 +378,17 @@ class Dictionary(TimestampMixin, SoftDeleteMixin, Base):
         return f"{label}({self.code})" if self.code else label
 
 
-class SystemConfig(TimestampMixin, Base):
-    """系统配置 (Key-Value)"""
+class SystemSetting(TimestampMixin, Base):
+    """系统设置 (Key-Value)"""
 
-    __tablename__ = "system_config"
+    __tablename__ = "system_setting"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    config_key: Mapped[str] = mapped_column(
-        String(128), unique=True, nullable=False, comment="配置键"
+    setting_key: Mapped[str] = mapped_column(
+        String(128), unique=True, nullable=False, comment="设置键"
     )
-    config_value: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True, comment="配置值 (JSON / 纯文本)"
+    setting_value: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="设置值 (JSON / 纯文本)"
     )
     description: Mapped[Optional[str]] = mapped_column(
         String(512), nullable=True, comment="描述"
@@ -401,10 +401,10 @@ class SystemConfig(TimestampMixin, Base):
         comment="是否前端可见",
     )
 
-    __table_args__ = ({"comment": "系统配置表"},)
+    __table_args__ = ({"comment": "系统设置表"},)
 
     def __str__(self) -> str:
-        return self.config_key or f"配置#{self.id}"
+        return self.setting_key or f"设置#{self.id}"
 
 
 class OperationLog(Base):
@@ -481,6 +481,135 @@ class OperationLog(Base):
     def __str__(self) -> str:
         actor = self.username or self.user_id or "匿名"
         return f"{actor} {self.action} #{self.id}"
+
+
+class Notification(TimestampMixin, Base):
+    """站内通知"""
+
+    __tablename__ = "notification"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="接收人",
+    )
+    title: Mapped[str] = mapped_column(String(256), nullable=False, comment="标题")
+    content: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="通知内容"
+    )
+    type: Mapped[str] = mapped_column(
+        String(32),
+        default="system",
+        server_default="system",
+        nullable=False,
+        comment="类型 system / mention / task / …",
+    )
+    is_read: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default="0",
+        nullable=False,
+        comment="已读",
+    )
+    read_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, comment="阅读时间"
+    )
+    source_type: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="来源类型"
+    )
+    source_id: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="来源ID"
+    )
+    sender_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger,
+        ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="发送人",
+    )
+
+    # --- relationships ---
+    user: Mapped["User"] = relationship(
+        back_populates="notifications", foreign_keys=[user_id]
+    )
+    sender: Mapped[Optional["User"]] = relationship(foreign_keys=[sender_id])
+
+    __table_args__ = (
+        Index("ix_notification_user_id", "user_id"),
+        Index("ix_notification_is_read", "is_read"),
+        Index("ix_notification_type", "type"),
+        Index("ix_notification_created_at", "created_at"),
+        {"comment": "通知表"},
+    )
+
+    def __str__(self) -> str:
+        return self.title or f"通知#{self.id}"
+
+
+class FileAsset(TimestampMixin, SoftDeleteMixin, Base):
+    """文件/附件"""
+
+    __tablename__ = "file_asset"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger,
+        ForeignKey("workspace.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="所属工作空间",
+    )
+    original_name: Mapped[str] = mapped_column(
+        String(512), nullable=False, comment="原始文件名"
+    )
+    storage_path: Mapped[str] = mapped_column(
+        String(1024), nullable=False, comment="存储路径 / Object Key"
+    )
+    file_size: Mapped[int] = mapped_column(
+        BigInteger, default=0, nullable=False, comment="文件大小(bytes)"
+    )
+    mime_type: Mapped[Optional[str]] = mapped_column(
+        String(128), nullable=True, comment="MIME 类型"
+    )
+    file_hash: Mapped[Optional[str]] = mapped_column(
+        String(128), nullable=True, comment="文件哈希 (MD5/SHA256)"
+    )
+    storage_type: Mapped[str] = mapped_column(
+        String(16),
+        default="local",
+        server_default="local",
+        nullable=False,
+        comment="存储类型 local / s3 / oss / …",
+    )
+    target_type: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="关联资源类型"
+    )
+    target_id: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="关联资源ID"
+    )
+    uploaded_by: Mapped[Optional[int]] = mapped_column(
+        BigInteger,
+        ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="上传人",
+    )
+
+    # --- relationships ---
+    workspace: Mapped[Optional["Workspace"]] = relationship(
+        back_populates="file_assets"
+    )
+    uploader: Mapped[Optional["User"]] = relationship(foreign_keys=[uploaded_by])
+
+    __table_args__ = (
+        Index("ix_file_asset_workspace_id", "workspace_id"),
+        Index("ix_file_asset_target", "target_type", "target_id"),
+        Index("ix_file_asset_uploaded_by", "uploaded_by"),
+        Index("ix_file_asset_file_hash", "file_hash"),
+        {"comment": "文件资产表"},
+    )
+
+    def __str__(self) -> str:
+        return self.original_name or f"文件#{self.id}"
 
 
 # ===================================================================
@@ -729,132 +858,3 @@ class Item(TimestampMixin, SoftDeleteMixin, Base):
 
     def __str__(self) -> str:
         return self.title or f"条目#{self.id}"
-
-
-class Notification(TimestampMixin, Base):
-    """站内通知"""
-
-    __tablename__ = "notification"
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(
-        BigInteger,
-        ForeignKey("user.id", ondelete="CASCADE"),
-        nullable=False,
-        comment="接收人",
-    )
-    title: Mapped[str] = mapped_column(String(256), nullable=False, comment="标题")
-    content: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True, comment="通知内容"
-    )
-    type: Mapped[str] = mapped_column(
-        String(32),
-        default="system",
-        server_default="system",
-        nullable=False,
-        comment="类型 system / mention / task / …",
-    )
-    is_read: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        server_default="0",
-        nullable=False,
-        comment="已读",
-    )
-    read_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, nullable=True, comment="阅读时间"
-    )
-    source_type: Mapped[Optional[str]] = mapped_column(
-        String(64), nullable=True, comment="来源类型"
-    )
-    source_id: Mapped[Optional[str]] = mapped_column(
-        String(64), nullable=True, comment="来源ID"
-    )
-    sender_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger,
-        ForeignKey("user.id", ondelete="SET NULL"),
-        nullable=True,
-        comment="发送人",
-    )
-
-    # --- relationships ---
-    user: Mapped["User"] = relationship(
-        back_populates="notifications", foreign_keys=[user_id]
-    )
-    sender: Mapped[Optional["User"]] = relationship(foreign_keys=[sender_id])
-
-    __table_args__ = (
-        Index("ix_notification_user_id", "user_id"),
-        Index("ix_notification_is_read", "is_read"),
-        Index("ix_notification_type", "type"),
-        Index("ix_notification_created_at", "created_at"),
-        {"comment": "通知表"},
-    )
-
-    def __str__(self) -> str:
-        return self.title or f"通知#{self.id}"
-
-
-class FileAsset(TimestampMixin, SoftDeleteMixin, Base):
-    """文件/附件"""
-
-    __tablename__ = "file_asset"
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    workspace_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger,
-        ForeignKey("workspace.id", ondelete="SET NULL"),
-        nullable=True,
-        comment="所属工作空间",
-    )
-    original_name: Mapped[str] = mapped_column(
-        String(512), nullable=False, comment="原始文件名"
-    )
-    storage_path: Mapped[str] = mapped_column(
-        String(1024), nullable=False, comment="存储路径 / Object Key"
-    )
-    file_size: Mapped[int] = mapped_column(
-        BigInteger, default=0, nullable=False, comment="文件大小(bytes)"
-    )
-    mime_type: Mapped[Optional[str]] = mapped_column(
-        String(128), nullable=True, comment="MIME 类型"
-    )
-    file_hash: Mapped[Optional[str]] = mapped_column(
-        String(128), nullable=True, comment="文件哈希 (MD5/SHA256)"
-    )
-    storage_type: Mapped[str] = mapped_column(
-        String(16),
-        default="local",
-        server_default="local",
-        nullable=False,
-        comment="存储类型 local / s3 / oss / …",
-    )
-    target_type: Mapped[Optional[str]] = mapped_column(
-        String(64), nullable=True, comment="关联资源类型"
-    )
-    target_id: Mapped[Optional[str]] = mapped_column(
-        String(64), nullable=True, comment="关联资源ID"
-    )
-    uploaded_by: Mapped[Optional[int]] = mapped_column(
-        BigInteger,
-        ForeignKey("user.id", ondelete="SET NULL"),
-        nullable=True,
-        comment="上传人",
-    )
-
-    # --- relationships ---
-    workspace: Mapped[Optional["Workspace"]] = relationship(
-        back_populates="file_assets"
-    )
-    uploader: Mapped[Optional["User"]] = relationship(foreign_keys=[uploaded_by])
-
-    __table_args__ = (
-        Index("ix_file_asset_workspace_id", "workspace_id"),
-        Index("ix_file_asset_target", "target_type", "target_id"),
-        Index("ix_file_asset_uploaded_by", "uploaded_by"),
-        Index("ix_file_asset_file_hash", "file_hash"),
-        {"comment": "文件资产表"},
-    )
-
-    def __str__(self) -> str:
-        return self.original_name or f"文件#{self.id}"

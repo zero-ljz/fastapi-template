@@ -22,21 +22,21 @@ from app.core.db import SessionLocal
 from app.core.logging import logger, setup_logging
 from app.core.security import get_password_hash
 from app.models import (
-    Dictionary,
-    FileAsset,
-    Item,
-    Node,
-    Notification,
-    OperationLog,
-    Permission,
-    Role,
-    RolePermission,
-    SystemConfig,
     User,
+    Role,
+    Permission,
+    RolePermission,
     UserRole,
+    Dictionary,
+    SystemSetting,
+    OperationLog,
+    Notification,
+    FileAsset,
     Workspace,
     WorkspaceUser,
     WorkspaceUserRole,
+    Node,
+    Item,
 )
 from app.services.user import get_user_by_username
 
@@ -231,27 +231,99 @@ def get_or_create_dictionary(
     return dictionary
 
 
-def get_or_create_system_config(
+def get_or_create_system_setting(
     db: Session,
     *,
     key: str,
     value: str,
     description: str,
     is_public: bool,
-) -> SystemConfig:
-    config = db.scalar(select(SystemConfig).where(SystemConfig.config_key == key))
-    if config:
-        return config
+) -> SystemSetting:
+    setting = db.scalar(select(SystemSetting).where(SystemSetting.setting_key == key))
+    if setting:
+        return setting
 
-    config = SystemConfig(
-        config_key=key,
-        config_value=value,
+    setting = SystemSetting(
+        setting_key=key,
+        setting_value=value,
         description=description,
         is_public=is_public,
     )
-    db.add(config)
+    db.add(setting)
     db.flush()
-    return config
+    return setting
+
+
+def get_or_create_notification(
+    db: Session,
+    *,
+    user: User,
+    title: str,
+    content: str,
+    type_: str,
+    sender: User | None = None,
+    source_type: str | None = None,
+    source_id: str | None = None,
+) -> Notification:
+    notification = db.scalar(
+        select(Notification).where(
+            Notification.user_id == user.id,
+            Notification.title == title,
+            Notification.source_type.is_(source_type)
+            if source_type is None
+            else Notification.source_type == source_type,
+            Notification.source_id.is_(source_id)
+            if source_id is None
+            else Notification.source_id == source_id,
+        )
+    )
+    if notification:
+        return notification
+
+    notification = Notification(
+        user_id=user.id,
+        title=title,
+        content=content,
+        type=type_,
+        is_read=False,
+        source_type=source_type,
+        source_id=source_id,
+        sender_id=sender.id if sender else None,
+    )
+    db.add(notification)
+    db.flush()
+    return notification
+
+
+def get_or_create_file_asset(
+    db: Session,
+    *,
+    workspace: Workspace,
+    original_name: str,
+    storage_path: str,
+    uploader: User,
+    target_type: str,
+    target_id: str,
+) -> FileAsset:
+    asset = db.scalar(select(FileAsset).where(FileAsset.storage_path == storage_path))
+    if asset:
+        return asset
+
+    asset = FileAsset(
+        workspace_id=workspace.id,
+        original_name=original_name,
+        storage_path=storage_path,
+        file_size=20480,
+        mime_type="text/markdown",
+        file_hash="seed-demo-roadmap-md",
+        storage_type="local",
+        target_type=target_type,
+        target_id=target_id,
+        uploaded_by=uploader.id,
+    )
+    db.add(asset)
+    db.flush()
+    return asset
 
 
 def get_or_create_workspace(db: Session, *, owner: User) -> Workspace:
@@ -371,78 +443,6 @@ def get_or_create_item(
     db.add(item)
     db.flush()
     return item
-
-
-def get_or_create_notification(
-    db: Session,
-    *,
-    user: User,
-    title: str,
-    content: str,
-    type_: str,
-    sender: User | None = None,
-    source_type: str | None = None,
-    source_id: str | None = None,
-) -> Notification:
-    notification = db.scalar(
-        select(Notification).where(
-            Notification.user_id == user.id,
-            Notification.title == title,
-            Notification.source_type.is_(source_type)
-            if source_type is None
-            else Notification.source_type == source_type,
-            Notification.source_id.is_(source_id)
-            if source_id is None
-            else Notification.source_id == source_id,
-        )
-    )
-    if notification:
-        return notification
-
-    notification = Notification(
-        user_id=user.id,
-        title=title,
-        content=content,
-        type=type_,
-        is_read=False,
-        source_type=source_type,
-        source_id=source_id,
-        sender_id=sender.id if sender else None,
-    )
-    db.add(notification)
-    db.flush()
-    return notification
-
-
-def get_or_create_file_asset(
-    db: Session,
-    *,
-    workspace: Workspace,
-    original_name: str,
-    storage_path: str,
-    uploader: User,
-    target_type: str,
-    target_id: str,
-) -> FileAsset:
-    asset = db.scalar(select(FileAsset).where(FileAsset.storage_path == storage_path))
-    if asset:
-        return asset
-
-    asset = FileAsset(
-        workspace_id=workspace.id,
-        original_name=original_name,
-        storage_path=storage_path,
-        file_size=20480,
-        mime_type="text/markdown",
-        file_hash="seed-demo-roadmap-md",
-        storage_type="local",
-        target_type=target_type,
-        target_id=target_id,
-        uploaded_by=uploader.id,
-    )
-    db.add(asset)
-    db.flush()
-    return asset
 
 
 def get_or_create_operation_log(
@@ -593,31 +593,31 @@ def init_seed_data() -> None:
         )
         notification_read = get_or_create_permission(
             db,
-            code="notification:read",
+            code="system:notification:read",
             name="通知查看",
             type_="api",
-            parent=workspace_menu,
+            parent=system_menu,
             path="/api/v1/notifications",
             method="GET",
-            sort_order=23,
+            sort_order=13,
         )
 
         permissions = [
             system_menu,
             user_permission,
             role_permission,
+            notification_read,
             workspace_menu,
             workspace_manage,
             item_manage,
-            notification_read,
         ]
         for permission in permissions:
             ensure_role_permission(db, super_admin, permission)
         for permission in [
+            notification_read,
             workspace_menu,
             workspace_manage,
             item_manage,
-            notification_read,
         ]:
             ensure_role_permission(db, workspace_admin, permission)
         for permission in [workspace_menu, item_manage, notification_read]:
@@ -631,8 +631,39 @@ def init_seed_data() -> None:
         ensure_user_role(db, member, project_member)
         ensure_user_role(db, viewer, readonly_viewer)
 
+        notification_type = get_or_create_dictionary(
+            db, code="notification_type", label="通知类型", sort_order=10
+        )
+        get_or_create_dictionary(
+            db,
+            code="notification_type",
+            label="系统通知",
+            value="system",
+            parent=notification_type,
+            sort_order=1,
+        )
+        get_or_create_dictionary(
+            db,
+            code="notification_type",
+            label="任务通知",
+            value="task",
+            parent=notification_type,
+            sort_order=2,
+        )
+        storage_type = get_or_create_dictionary(
+            db, code="storage_type", label="存储类型", sort_order=20
+        )
+        get_or_create_dictionary(
+            db,
+            code="storage_type",
+            label="本地存储",
+            value="local",
+            parent=storage_type,
+            sort_order=1,
+        )
+
         node_type = get_or_create_dictionary(
-            db, code="node_type", label="节点类型", sort_order=10
+            db, code="node_type", label="节点类型", sort_order=30
         )
         get_or_create_dictionary(
             db,
@@ -651,7 +682,7 @@ def init_seed_data() -> None:
             sort_order=2,
         )
         item_type = get_or_create_dictionary(
-            db, code="item_type", label="条目类型", sort_order=20
+            db, code="item_type", label="条目类型", sort_order=40
         )
         get_or_create_dictionary(
             db,
@@ -670,7 +701,7 @@ def init_seed_data() -> None:
             sort_order=2,
         )
         item_status = get_or_create_dictionary(
-            db, code="item_status", label="条目状态", sort_order=30
+            db, code="item_status", label="条目状态", sort_order=50
         )
         get_or_create_dictionary(
             db,
@@ -697,7 +728,7 @@ def init_seed_data() -> None:
             sort_order=3,
         )
         priority = get_or_create_dictionary(
-            db, code="priority", label="优先级", sort_order=40
+            db, code="priority", label="优先级", sort_order=60
         )
         get_or_create_dictionary(
             db, code="priority", label="中", value="2", parent=priority, sort_order=2
@@ -705,52 +736,22 @@ def init_seed_data() -> None:
         get_or_create_dictionary(
             db, code="priority", label="高", value="3", parent=priority, sort_order=3
         )
-        notification_type = get_or_create_dictionary(
-            db, code="notification_type", label="通知类型", sort_order=50
-        )
-        get_or_create_dictionary(
-            db,
-            code="notification_type",
-            label="系统通知",
-            value="system",
-            parent=notification_type,
-            sort_order=1,
-        )
-        get_or_create_dictionary(
-            db,
-            code="notification_type",
-            label="任务通知",
-            value="task",
-            parent=notification_type,
-            sort_order=2,
-        )
-        storage_type = get_or_create_dictionary(
-            db, code="storage_type", label="存储类型", sort_order=60
-        )
-        get_or_create_dictionary(
-            db,
-            code="storage_type",
-            label="本地存储",
-            value="local",
-            parent=storage_type,
-            sort_order=1,
-        )
 
-        get_or_create_system_config(
+        get_or_create_system_setting(
             db,
             key="site.name",
             value=settings.PROJECT_NAME,
             description="前台显示的站点名称",
             is_public=True,
         )
-        get_or_create_system_config(
+        get_or_create_system_setting(
             db,
             key="workspace.default_role",
             value=WorkspaceUserRole.MEMBER.value,
             description="新成员加入工作空间时的默认角色",
             is_public=False,
         )
-        get_or_create_system_config(
+        get_or_create_system_setting(
             db,
             key="upload.max_size_mb",
             value="20",

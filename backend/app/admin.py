@@ -15,20 +15,20 @@ from app.core.config import settings
 from app.core.db import SessionLocal, engine
 from app.core.security import verify_password
 from app.models import (
-    Dictionary,
-    FileAsset,
-    Item,
-    Node,
-    Notification,
-    OperationLog,
-    Permission,
-    Role,
-    RolePermission,
-    SystemConfig,
     User,
+    Role,
+    Permission,
+    RolePermission,
     UserRole,
+    Dictionary,
+    SystemSetting,
+    OperationLog,
+    Notification,
+    FileAsset,
     Workspace,
     WorkspaceUser,
+    Node,
+    Item,
 )
 from app.services.user import get_user_by_username
 
@@ -271,26 +271,26 @@ class DictionaryAdmin(BaseAdmin, model=Dictionary):
     form_excluded_columns = ["children", "created_at", "updated_at"]
 
 
-class SystemConfigAdmin(BaseAdmin, model=SystemConfig):
-    name = "系统配置"
-    name_plural = "系统配置"
+class SystemSettingAdmin(BaseAdmin, model=SystemSetting):
+    name = "系统设置"
+    name_plural = "系统设置"
     icon = "fa-solid fa-gear"
     column_list = [
-        SystemConfig.id,
-        SystemConfig.config_key,
-        SystemConfig.config_value,
-        SystemConfig.is_public,
+        SystemSetting.id,
+        SystemSetting.setting_key,
+        SystemSetting.setting_value,
+        SystemSetting.is_public,
     ]
-    column_searchable_list = [SystemConfig.config_key, SystemConfig.config_value]
-    column_sortable_list = [SystemConfig.id, SystemConfig.config_key]
+    column_searchable_list = [SystemSetting.setting_key, SystemSetting.setting_value]
+    column_sortable_list = [SystemSetting.id, SystemSetting.setting_key]
     column_labels = {
-        SystemConfig.id: "ID",
-        SystemConfig.config_key: "配置键",
-        SystemConfig.config_value: "配置值",
-        SystemConfig.description: "描述",
-        SystemConfig.is_public: "前端可见",
-        SystemConfig.created_at: "创建时间",
-        SystemConfig.updated_at: "更新时间",
+        SystemSetting.id: "ID",
+        SystemSetting.setting_key: "设置键",
+        SystemSetting.setting_value: "设置值",
+        SystemSetting.description: "描述",
+        SystemSetting.is_public: "前端可见",
+        SystemSetting.created_at: "创建时间",
+        SystemSetting.updated_at: "更新时间",
     }
     form_excluded_columns = ["created_at", "updated_at"]
 
@@ -337,6 +337,83 @@ class OperationLogAdmin(BaseAdmin, model=OperationLog):
         OperationLog.status: "状态",
         OperationLog.created_at: "操作时间",
     }
+
+
+class NotificationAdmin(BaseAdmin, model=Notification):
+    name = "通知"
+    name_plural = "通知"
+    icon = "fa-solid fa-bell"
+    column_list = [
+        Notification.id,
+        Notification.user,
+        Notification.title,
+        Notification.type,
+        Notification.is_read,
+        Notification.created_at,
+    ]
+    column_searchable_list = [
+        Notification.title,
+        Notification.content,
+        Notification.type,
+    ]
+    column_sortable_list = [Notification.id, Notification.created_at]
+    column_labels = {
+        Notification.id: "ID",
+        Notification.user_id: "接收人 ID",
+        Notification.user: "接收人",
+        Notification.title: "标题",
+        Notification.content: "内容",
+        Notification.type: "类型",
+        Notification.is_read: "已读",
+        Notification.read_at: "阅读时间",
+        Notification.source_type: "来源类型",
+        Notification.source_id: "来源 ID",
+        Notification.sender_id: "发送人 ID",
+        Notification.sender: "发送人",
+        Notification.created_at: "创建时间",
+        Notification.updated_at: "更新时间",
+    }
+    form_excluded_columns = ["created_at", "updated_at"]
+
+
+class FileAssetAdmin(BaseAdmin, model=FileAsset):
+    name = "文件资产"
+    name_plural = "文件资产"
+    icon = "fa-solid fa-file"
+    column_list = [
+        FileAsset.id,
+        FileAsset.workspace,
+        FileAsset.original_name,
+        FileAsset.storage_type,
+        FileAsset.file_size,
+        FileAsset.uploader,
+        FileAsset.created_at,
+    ]
+    column_searchable_list = [
+        FileAsset.original_name,
+        FileAsset.storage_path,
+        FileAsset.mime_type,
+        FileAsset.file_hash,
+    ]
+    column_sortable_list = [FileAsset.id, FileAsset.file_size, FileAsset.created_at]
+    column_labels = {
+        FileAsset.id: "ID",
+        FileAsset.workspace_id: "空间 ID",
+        FileAsset.workspace: "工作空间",
+        FileAsset.original_name: "原始文件名",
+        FileAsset.storage_path: "存储路径",
+        FileAsset.file_size: "文件大小",
+        FileAsset.mime_type: "MIME 类型",
+        FileAsset.file_hash: "文件哈希",
+        FileAsset.storage_type: "存储类型",
+        FileAsset.target_type: "关联类型",
+        FileAsset.target_id: "关联 ID",
+        FileAsset.uploaded_by: "上传人 ID",
+        FileAsset.uploader: "上传人",
+        FileAsset.created_at: "创建时间",
+        FileAsset.updated_at: "更新时间",
+    }
+    form_excluded_columns = ["created_at", "updated_at"]
 
 
 class WorkspaceAdmin(BaseAdmin, model=Workspace):
@@ -483,83 +560,6 @@ class ItemAdmin(BaseAdmin, model=Item):
     form_excluded_columns = ["created_at", "updated_at"]
 
 
-class NotificationAdmin(BaseAdmin, model=Notification):
-    name = "通知"
-    name_plural = "通知"
-    icon = "fa-solid fa-bell"
-    column_list = [
-        Notification.id,
-        Notification.user,
-        Notification.title,
-        Notification.type,
-        Notification.is_read,
-        Notification.created_at,
-    ]
-    column_searchable_list = [
-        Notification.title,
-        Notification.content,
-        Notification.type,
-    ]
-    column_sortable_list = [Notification.id, Notification.created_at]
-    column_labels = {
-        Notification.id: "ID",
-        Notification.user_id: "接收人 ID",
-        Notification.user: "接收人",
-        Notification.title: "标题",
-        Notification.content: "内容",
-        Notification.type: "类型",
-        Notification.is_read: "已读",
-        Notification.read_at: "阅读时间",
-        Notification.source_type: "来源类型",
-        Notification.source_id: "来源 ID",
-        Notification.sender_id: "发送人 ID",
-        Notification.sender: "发送人",
-        Notification.created_at: "创建时间",
-        Notification.updated_at: "更新时间",
-    }
-    form_excluded_columns = ["created_at", "updated_at"]
-
-
-class FileAssetAdmin(BaseAdmin, model=FileAsset):
-    name = "文件资产"
-    name_plural = "文件资产"
-    icon = "fa-solid fa-file"
-    column_list = [
-        FileAsset.id,
-        FileAsset.workspace,
-        FileAsset.original_name,
-        FileAsset.storage_type,
-        FileAsset.file_size,
-        FileAsset.uploader,
-        FileAsset.created_at,
-    ]
-    column_searchable_list = [
-        FileAsset.original_name,
-        FileAsset.storage_path,
-        FileAsset.mime_type,
-        FileAsset.file_hash,
-    ]
-    column_sortable_list = [FileAsset.id, FileAsset.file_size, FileAsset.created_at]
-    column_labels = {
-        FileAsset.id: "ID",
-        FileAsset.workspace_id: "空间 ID",
-        FileAsset.workspace: "工作空间",
-        FileAsset.original_name: "原始文件名",
-        FileAsset.storage_path: "存储路径",
-        FileAsset.file_size: "文件大小",
-        FileAsset.mime_type: "MIME 类型",
-        FileAsset.file_hash: "文件哈希",
-        FileAsset.storage_type: "存储类型",
-        FileAsset.target_type: "关联类型",
-        FileAsset.target_id: "关联 ID",
-        FileAsset.uploaded_by: "上传人 ID",
-        FileAsset.uploader: "上传人",
-        FileAsset.created_at: "创建时间",
-        FileAsset.updated_at: "更新时间",
-    }
-    form_excluded_columns = ["created_at", "updated_at"]
-
-
 def register_admin(app: FastAPI) -> Admin:
     @app.get("/admin", include_in_schema=False)
     async def redirect_to_admin() -> RedirectResponse:
@@ -579,14 +579,14 @@ def register_admin(app: FastAPI) -> Admin:
         UserRoleAdmin,
         RolePermissionAdmin,
         DictionaryAdmin,
-        SystemConfigAdmin,
+        SystemSettingAdmin,
         OperationLogAdmin,
+        NotificationAdmin,
+        FileAssetAdmin,
         WorkspaceAdmin,
         WorkspaceUserAdmin,
         NodeAdmin,
         ItemAdmin,
-        NotificationAdmin,
-        FileAssetAdmin,
     ):
         admin.add_view(view)
 

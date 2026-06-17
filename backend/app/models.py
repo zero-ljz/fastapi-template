@@ -114,6 +114,9 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
         {"comment": "用户表"},
     )
 
+    def __str__(self) -> str:
+        return self.nickname or self.username or f"用户#{self.id}"
+
 
 class Role(TimestampMixin, SoftDeleteMixin, Base):
     """角色"""
@@ -140,6 +143,10 @@ class Role(TimestampMixin, SoftDeleteMixin, Base):
     __table_args__ = (
         {"comment": "角色表"},
     )
+
+    def __str__(self) -> str:
+        name = self.name or f"角色#{self.id}"
+        return f"{name}({self.code})" if self.code else name
 
 
 class Permission(TimestampMixin, Base):
@@ -178,6 +185,10 @@ class Permission(TimestampMixin, Base):
         {"comment": "权限表"},
     )
 
+    def __str__(self) -> str:
+        name = self.name or f"权限#{self.id}"
+        return f"{name}({self.code})" if self.code else name
+
 
 class RolePermission(TimestampMixin, Base):
     """角色-权限 关联表"""
@@ -203,6 +214,9 @@ class RolePermission(TimestampMixin, Base):
         {"comment": "角色-权限关联表"},
     )
 
+    def __str__(self) -> str:
+        return f"{self.role} - {self.permission}"
+
 
 class UserRole(TimestampMixin, Base):
     """用户-角色 关联表"""
@@ -227,6 +241,9 @@ class UserRole(TimestampMixin, Base):
         Index("ix_user_role_role_id", "role_id"),
         {"comment": "用户-角色关联表"},
     )
+
+    def __str__(self) -> str:
+        return f"{self.user} - {self.role}"
 
 
 # ===================================================================
@@ -265,6 +282,10 @@ class Dictionary(TimestampMixin, SoftDeleteMixin, Base):
         {"comment": "数据字典表"},
     )
 
+    def __str__(self) -> str:
+        label = self.label or f"字典#{self.id}"
+        return f"{label}({self.code})" if self.code else label
+
 
 class SystemConfig(TimestampMixin, Base):
     """系统配置 (Key-Value)"""
@@ -283,6 +304,9 @@ class SystemConfig(TimestampMixin, Base):
     __table_args__ = (
         {"comment": "系统配置表"},
     )
+
+    def __str__(self) -> str:
+        return self.config_key or f"配置#{self.id}"
 
 
 class OperationLog(Base):
@@ -325,6 +349,10 @@ class OperationLog(Base):
         {"comment": "操作日志表"},
     )
 
+    def __str__(self) -> str:
+        actor = self.username or self.user_id or "匿名"
+        return f"{actor} {self.action} #{self.id}"
+
 
 # ===================================================================
 # Workspace
@@ -361,6 +389,10 @@ class Workspace(TimestampMixin, SoftDeleteMixin, Base):
         Index("ix_workspace_owner_id", "owner_id"),
         {"comment": "工作空间表"},
     )
+
+    def __str__(self) -> str:
+        name = self.name or f"空间#{self.id}"
+        return f"{name}({self.code})" if self.code else name
 
 
 class WorkspaceUserRole(str, enum.Enum):
@@ -399,6 +431,9 @@ class WorkspaceUser(TimestampMixin, Base):
         Index("ix_workspace_user_user_id", "user_id"),
         {"comment": "工作空间-用户关联表"},
     )
+
+    def __str__(self) -> str:
+        return f"{self.workspace} - {self.user}({self.role})"
 
 
 # ===================================================================
@@ -444,6 +479,10 @@ class Node(TimestampMixin, SoftDeleteMixin, Base):
         Index("ix_node_type", "type"),
         {"comment": "节点表"},
     )
+
+    def __str__(self) -> str:
+        name = self.name or f"节点#{self.id}"
+        return f"{name}({self.type})" if self.type else name
 
 
 class Item(TimestampMixin, SoftDeleteMixin, Base):
@@ -493,6 +532,9 @@ class Item(TimestampMixin, SoftDeleteMixin, Base):
         {"comment": "条目表"},
     )
 
+    def __str__(self) -> str:
+        return self.title or f"条目#{self.id}"
+
 
 class Notification(TimestampMixin, Base):
     """站内通知"""
@@ -531,6 +573,9 @@ class Notification(TimestampMixin, Base):
         {"comment": "通知表"},
     )
 
+    def __str__(self) -> str:
+        return self.title or f"通知#{self.id}"
+
 
 class FileAsset(TimestampMixin, SoftDeleteMixin, Base):
     """文件/附件"""
@@ -567,3 +612,6 @@ class FileAsset(TimestampMixin, SoftDeleteMixin, Base):
         Index("ix_file_asset_file_hash", "file_hash"),
         {"comment": "文件资产表"},
     )
+
+    def __str__(self) -> str:
+        return self.original_name or f"文件#{self.id}"

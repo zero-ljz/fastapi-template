@@ -5,20 +5,20 @@
 在 MySQL 中创建数据库  
 mysql -u root -p -e "CREATE DATABASE db1 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
+修改环境变量  
+cp .env.example .env && nano .env
+
+安装依赖  
+pip install -r requirements.txt
+
 执行数据库迁移  
 alembic upgrade head
 
-## 本地安装启动
-Windows:  
-```shell
-.\start.bat
-```
+生成初始测试数据  
+python app/initial_data.py
 
-Linux/macOS:  
-```bash
-chmod +x start.sh
-./start.sh
-```
+启动后端服务  
+python run.py
 
 ## 使用 Docker Compose 启动
 docker-compose up -d
@@ -38,15 +38,6 @@ alembic revision --autogenerate -m "描述"
 
 执行迁移脚本将表结构同步到数据库:   
 alembic upgrade head
-
-## 初始化数据
-如需初始化首个 SQLAdmin 超级管理员，可配置环境变量：
-
-```bash
-FIRST_SUPERUSER=admin
-FIRST_SUPERUSER_EMAIL=admin@example.com
-FIRST_SUPERUSER_PASSWORD=change-this-password
-```
 
 
 # 软件设计说明

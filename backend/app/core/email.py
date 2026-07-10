@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import asyncio
+from html import escape
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -93,7 +94,7 @@ def _render_template(template_name: str, **kwargs: str) -> str:
 
     html = template_path.read_text(encoding="utf-8")
     for key, value in kwargs.items():
-        html = html.replace(f"{{{{{key}}}}}", value)
+        html = html.replace(f"{{{{{key}}}}}", escape(value, quote=True))
     return html
 
 

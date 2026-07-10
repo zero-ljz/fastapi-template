@@ -1,7 +1,9 @@
+# app/core/config.py
+
 import json
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,7 +22,8 @@ class Settings(BaseSettings):
 
     SECRET_KEY: str = "change-me-to-a-random-secret-key-32chars-min"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost",
@@ -59,11 +62,6 @@ class Settings(BaseSettings):
     # --- 日志 ---
     LOG_LEVEL: str = "INFO"
 
-    # --- 文件存储 ---
-    STORAGE_BUCKET: str = ""
-    STORAGE_ACCESS_KEY: str = ""
-    STORAGE_SECRET_KEY: str = ""
-
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: str | list[str]) -> list[str]:
@@ -83,6 +81,19 @@ class Settings(BaseSettings):
         if len(value) < 32:
             raise ValueError("SECRET_KEY must be at least 32 characters long")
         return value
+
+    @model_validator(mode="after")
+    def validate_production_settings(self):
+        if self.ENVIRONMENT.lower() == "production":
+            if self.DEBUG:
+                raise ValueError("DEBUG must be false in production")
+            if self.SECRET_KEY == "change-me-to-a-random-secret-key-32chars-min":
+                raise ValueError("SECRET_KEY must be changed in production")
+            if self.FIRST_SUPERUSER_PASSWORD == "change-me-admin-password":
+                raise ValueError(
+                    "FIRST_SUPERUSER_PASSWORD must be changed in production"
+                )
+        return self
 
     @property
     def smtp_enabled(self) -> bool:

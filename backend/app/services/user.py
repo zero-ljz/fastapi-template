@@ -1,16 +1,15 @@
 # app/services/user.py
 
-"""
-用户 Service 层 — 封装业务逻辑，供 API 路由调用
-"""
+"""基于 AsyncSession 的用户查询、注册、更新与认证逻辑。"""
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from anyio import to_thread
+from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
     BadRequestException,
@@ -18,185 +17,139 @@ from app.core.exceptions import (
     UnauthorizedException,
 )
 from app.core.logging import logger
-from app.core.security import get_password_hash, verify_password
+from app.core.security import get_password_hash, utc_now, verify_password
 from app.models import User
-from app.schemas.user import UserAdminUpdate, UserCreate, UserUpdate, UserUpdatePassword
+from app.schemas.user import UserCreate, UserUpdate, UserUpdatePassword
 
 
-# ---------------------------------------------------------------------------
-# 查询
-# ---------------------------------------------------------------------------
+async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
+    return await db.get(User, user_id)
 
 
-def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
-    """按 ID 查询用户"""
-    return db.get(User, user_id)
+async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User]:
+    return await db.scalar(select(User).where(User.username == username))
 
 
-def get_user_by_username(db: Session, username: str) -> Optional[User]:
-    """按用户名查询用户"""
-    stmt = select(User).where(User.username == username, User.is_deleted.is_(False))
-    return db.execute(stmt).scalar_one_or_none()
+async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
+    return await db.scalar(select(User).where(User.email == email.lower()))
 
 
-def get_user_by_email(db: Session, email: str) -> Optional[User]:
-    """按邮箱查询用户"""
-    stmt = select(User).where(User.email == email, User.is_deleted.is_(False))
-    return db.execute(stmt).scalar_one_or_none()
-
-
-def list_users(
-    db: Session,
+async def list_users(
+    db: AsyncSession,
     *,
     page: int = 1,
     page_size: int = 20,
     keyword: Optional[str] = None,
-    status: Optional[int] = None,
+    is_active: Optional[bool] = None,
 ) -> tuple[list[User], int]:
-    """分页查询用户列表，返回 (用户列表, 总数)"""
-    stmt = select(User).where(User.is_deleted.is_(False))
-
+    stmt = select(User)
     if keyword:
         like_pattern = f"%{keyword}%"
         stmt = stmt.where(
-            (User.username.ilike(like_pattern))
-            | (User.nickname.ilike(like_pattern))
-            | (User.email.ilike(like_pattern))
+            or_(
+                User.username.ilike(like_pattern),
+                User.display_name.ilike(like_pattern),
+                User.email.ilike(like_pattern),
+            )
         )
-    if status is not None:
-        stmt = stmt.where(User.status == status)
+    if is_active is not None:
+        stmt = stmt.where(User.is_active.is_(is_active))
 
-    # 总数
-    count_stmt = select(func.count()).select_from(stmt.subquery())
-    total = db.execute(count_stmt).scalar() or 0
-
-    # 分页
+    total = await db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     stmt = stmt.order_by(User.id.desc()).offset((page - 1) * page_size).limit(page_size)
-    users = list(db.execute(stmt).scalars().all())
-
-    return users, total
-
-
-# ---------------------------------------------------------------------------
-# 创建
-# ---------------------------------------------------------------------------
+    users = await db.scalars(stmt)
+    return list(users.all()), total
 
 
-def create_user(db: Session, user_in: UserCreate) -> User:
-    """创建用户（注册）"""
-    # 唯一性检查
-    if get_user_by_username(db, user_in.username):
+async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
+    if user_in.username and await get_user_by_username(db, user_in.username):
         raise ConflictException(detail="用户名已存在")
-    if user_in.email and get_user_by_email(db, user_in.email):
+    if await get_user_by_email(db, str(user_in.email)):
         raise ConflictException(detail="邮箱已被注册")
 
+    hashed_password = await to_thread.run_sync(get_password_hash, user_in.password)
     user = User(
+        email=str(user_in.email).lower(),
         username=user_in.username,
-        password=get_password_hash(user_in.password),
-        email=user_in.email,
-        nickname=user_in.nickname or user_in.username,
+        hashed_password=hashed_password,
+        display_name=user_in.display_name or user_in.username,
     )
     db.add(user)
-    db.commit()
-    db.refresh(user)
-    logger.info("新用户注册 | id={} | username={}", user.id, user.username)
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise ConflictException(detail="用户名或邮箱已存在") from exc
+    await db.refresh(user)
+    logger.info("新用户注册 | id={} | email={}", user.id, user.email)
     return user
 
 
-# ---------------------------------------------------------------------------
-# 更新
-# ---------------------------------------------------------------------------
-
-
-def update_user(db: Session, user: User, user_in: UserUpdate) -> User:
-    """更新用户信息"""
+async def update_user(db: AsyncSession, user: User, user_in: UserUpdate) -> User:
     update_data = user_in.model_dump(exclude_unset=True)
-
-    # 邮箱唯一性检查
-    if "email" in update_data and update_data["email"]:
-        existing = get_user_by_email(db, update_data["email"])
+    if "email" in update_data:
+        if not update_data["email"]:
+            raise BadRequestException(detail="邮箱不能为空")
+        email = str(update_data["email"]).lower()
+        existing = await get_user_by_email(db, email)
         if existing and existing.id != user.id:
             raise ConflictException(detail="邮箱已被注册")
+        update_data["email"] = email
 
     for field, value in update_data.items():
         setattr(user, field, value)
-
-    db.commit()
-    db.refresh(user)
-    logger.info("用户信息更新 | id={} | fields={}", user.id, list(update_data.keys()))
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise ConflictException(detail="用户信息已被占用") from exc
+    await db.refresh(user)
     return user
 
 
-def admin_update_user(db: Session, user: User, user_in: UserAdminUpdate) -> User:
-    """管理员更新用户"""
-    update_data = user_in.model_dump(exclude_unset=True)
-
-    if "email" in update_data and update_data["email"]:
-        existing = get_user_by_email(db, update_data["email"])
-        if existing and existing.id != user.id:
-            raise ConflictException(detail="邮箱已被注册")
-
-    for field, value in update_data.items():
-        setattr(user, field, value)
-
-    db.commit()
-    db.refresh(user)
-    logger.info("管理员更新用户 | id={} | fields={}", user.id, list(update_data.keys()))
-    return user
-
-
-def update_password(db: Session, user: User, password_in: UserUpdatePassword) -> None:
-    """修改密码"""
-    valid, _ = verify_password(password_in.old_password, user.password)
+async def update_password(
+    db: AsyncSession, user: User, password_in: UserUpdatePassword
+) -> None:
+    valid, _ = await to_thread.run_sync(
+        verify_password, password_in.old_password, user.hashed_password
+    )
     if not valid:
         raise BadRequestException(detail="旧密码错误")
-
-    user.password = get_password_hash(password_in.new_password)
-    db.commit()
-    logger.info("用户修改密码 | id={}", user.id)
-
-
-# ---------------------------------------------------------------------------
-# 删除
-# ---------------------------------------------------------------------------
+    if password_in.old_password == password_in.new_password:
+        raise BadRequestException(detail="新密码不能与旧密码相同")
+    user.hashed_password = await to_thread.run_sync(
+        get_password_hash, password_in.new_password
+    )
+    await db.commit()
 
 
-def delete_user(db: Session, user: User) -> None:
-    """软删除用户"""
-    user.is_deleted = True
-    user.is_active = False
-    db.commit()
-    logger.info("用户已删除 | id={} | username={}", user.id, user.username)
+async def delete_user(db: AsyncSession, user: User) -> None:
+    await db.delete(user)
+    await db.commit()
 
 
-# ---------------------------------------------------------------------------
-# 认证
-# ---------------------------------------------------------------------------
-
-
-def authenticate(db: Session, username: str, password: str) -> User:
-    """验证用户名 + 密码，返回用户对象"""
-    user = get_user_by_username(db, username)
+async def authenticate(db: AsyncSession, identifier: str, password: str) -> User:
+    user = await db.scalar(
+        select(User).where(
+            or_(User.username == identifier, User.email == identifier.lower())
+        )
+    )
     if not user:
-        raise UnauthorizedException(detail="用户名或密码错误")
+        raise UnauthorizedException(detail="用户名、邮箱或密码错误")
 
-    valid, updated_hash = verify_password(password, user.password)
+    valid, updated_hash = await to_thread.run_sync(
+        verify_password, password, user.hashed_password
+    )
     if not valid:
-        raise UnauthorizedException(detail="用户名或密码错误")
-
-    # 如果密码哈希算法升级，自动更新存储的哈希
-    if updated_hash:
-        user.password = updated_hash
-        db.commit()
-
+        raise UnauthorizedException(detail="用户名、邮箱或密码错误")
     if not user.is_active:
         raise UnauthorizedException(detail="用户已被禁用")
-
+    if updated_hash:
+        user.hashed_password = updated_hash
+        await db.commit()
     return user
 
 
-def update_login_info(db: Session, user: User, ip: Optional[str] = None) -> None:
-    """更新最后登录信息"""
-    user.last_login_at = datetime.now()
-    user.last_login_ip = ip
-    db.commit()
+async def update_login_info(db: AsyncSession, user: User) -> None:
+    user.last_login_at = utc_now()
+    await db.commit()

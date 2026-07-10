@@ -1,7 +1,10 @@
 # app/core/security.py
 
 from datetime import datetime, timedelta, timezone
+import hashlib
+import secrets
 from typing import Any
+from uuid import uuid4
 
 import jwt
 from pwdlib import PasswordHash
@@ -10,22 +13,32 @@ from pwdlib.hashers.bcrypt import BcryptHasher
 
 from app.core.config import settings
 
-password_hash = PasswordHash(
-    (
-        Argon2Hasher(),
-        BcryptHasher(),
-    )
-)
+password_hash = PasswordHash((Argon2Hasher(), BcryptHasher()))
 
 
-ALGORITHM = "HS256"
+def utc_now() -> datetime:
+    """返回适合 MySQL DATETIME 存储的无时区 UTC 时间。"""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
-    expire = datetime.now(timezone.utc) + expires_delta
-    to_encode = {"exp": expire, "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(subject),
+        "type": "access",
+        "iat": now,
+        "exp": now + expires_delta,
+        "jti": str(uuid4()),
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def create_refresh_token() -> str:
+    return secrets.token_urlsafe(48)
+
+
+def hash_refresh_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def verify_password(

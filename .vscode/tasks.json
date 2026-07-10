@@ -7,8 +7,8 @@
 			"platform": "python",
 			"dockerBuild": {
 				"tag": "fastapitemplate:latest",
-				"dockerfile": "${workspaceFolder}/Dockerfile",
-				"context": "${workspaceFolder}",
+				"dockerfile": "${workspaceFolder}/backend/Dockerfile",
+				"context": "${workspaceFolder}/backend",
 				"pull": true
 			}
 		},

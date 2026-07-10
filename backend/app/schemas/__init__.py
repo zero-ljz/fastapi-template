@@ -1,6 +1,7 @@
-from .token import Token, TokenPayload
+# app/schemas/__init__.py
+
+from .token import RefreshTokenRequest, RevokeTokenRequest, Token, TokenPayload
 from .user import (
-    UserAdminUpdate,
     UserCreate,
     UserListResponse,
     UserRead,
@@ -11,7 +12,8 @@ from .user import (
 __all__ = [
     "Token",
     "TokenPayload",
-    "UserAdminUpdate",
+    "RefreshTokenRequest",
+    "RevokeTokenRequest",
     "UserCreate",
     "UserListResponse",
     "UserRead",

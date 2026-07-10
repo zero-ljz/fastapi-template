@@ -1,68 +1,53 @@
-# 快速开始
+# Backend
 
-## 本地初次启动  
+## 数据模型
 
-在 MySQL 中创建数据库  
-mysql -u root -p -e "CREATE DATABASE db1 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+默认只有两张业务表：
 
-修改环境变量  
-cp .env.example .env && nano .env
+- `user`：终端用户与超级管理员
+- `refresh_session`：按设备记录 Refresh Token 哈希、有效期和撤销状态
 
-安装依赖  
-pip install -r requirements.txt
+模板不默认包含 RBAC、多租户、通知、字典、文件或演示业务表。
 
-执行数据库迁移  
+核心 API 路由、认证依赖和 Service 全部使用 `AsyncSession`。同步引擎只用于 SQLAdmin、Alembic、初始化和维护脚本，禁止在 `async def` API 中调用同步数据库 Session。
+
+## 本地启动
+
+```bash
+cp .env.example .env
+pip install -r requirements-dev.txt
 alembic upgrade head
-
-生成初始测试数据  
 python app/initial_data.py
-
-启动开发服务器  
 python run.py
+```
 
-## 使用 Docker Compose 启动
-在根目录运行
-docker-compose up -d
+初始化脚本只会幂等创建 `.env` 中配置的首个超级管理员，不会写入演示账号或业务数据。
 
-## 访问接口
-交互式文档 (Swagger):   
-http://127.0.0.1:8000/docs  
-备用文档 (ReDoc):   
-http://127.0.0.1:8000/redoc  
-后台管理 (SQLAdmin):   
-http://127.0.0.1:8000/admin  
+## 主要认证接口
+
+```text
+POST /api/v1/login/access-token  登录，返回 Access + Refresh Token
+POST /api/v1/login/refresh       轮换 Refresh Token
+POST /api/v1/login/logout        退出当前设备
+POST /api/v1/login/logout-all    退出全部设备
+```
+
+`/login/access-token` 使用 OAuth2 表单，其中 `username` 字段可以填写邮箱或用户名。
 
 ## 数据库迁移
-自动生成迁移脚本:   
-alembic revision --autogenerate -m "描述"
 
-执行迁移脚本将表结构同步到数据库:   
+```bash
+alembic revision --autogenerate -m "description"
 alembic upgrade head
+alembic downgrade -1
+```
+
+当前首个迁移是新的精简基线。旧版模板没有正式迁移版本，如果已有旧版开发数据库，请备份需要的数据后重建数据库。
 
 ## 测试与代码规范
-pytest  
+
+```bash
+python -m pytest -q
 ruff check .
-
-# 软件设计说明
-系统架构与模块描述  
-后端: 采用经典的分层架构并结合依赖注入机制
-前端: 采用基于组件化与状态分离的现代架构
-
-核心技术栈  
-后端: FastAPI + SQLAlchemy + Alembic + MySQL
-前端: React + TypeScript + Vite + Zustand + shadcn/ui
-
-核心业务步骤描述  
-
-数据库核心表设计  
-14个
-- Auth & RBAC: User, Role, Permission, RolePermission, UserRole
-- System: Dictionary, SystemSetting, OperationLog, Notification, FileAsset
-- Workspace: Workspace, WorkspaceUser
-- Business: Node, Item
-
-接口设计规范  
-采用 HTTP 状态驱动的原生 RESTful 风格，遵守 FastAPI 默认的 HTTPException 错误格式
-
-代码规范
-优先采用业界主流的最佳实践设计与标准规范
+ruff format --check .
+```

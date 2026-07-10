@@ -2,21 +2,24 @@
 
 """
 测试基础设施
-- 使用 SQLite 内存数据库，每个测试函数独立建表/销毁
-- 提供 TestClient、预置用户、认证 headers 等 fixtures
+- 使用临时 SQLite 文件共享同步测试夹具与异步 API 会话
+- API 通过 aiosqlite + AsyncSession 执行真实异步数据库调用
+- 每个测试函数独立建表/销毁
 """
 
+import asyncio
+
 import pytest
-from sqlalchemy import create_engine, event, BigInteger
+from sqlalchemy import BigInteger, create_engine, event
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from fastapi.testclient import TestClient
 
 from app.models import Base, User
 from app.core.security import get_password_hash
-from app.api.deps import get_session
+from app.api.deps import get_async_session
 from app.main import app
 
 
@@ -36,53 +39,66 @@ def compile_big_integer_sqlite(type_, compiler, **kw):
 # ---------------------------------------------------------------------------
 
 
+def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 @pytest.fixture(scope="function")
-def db_session():
-    """
-    每个测试函数独立的数据库会话。
-    使用 StaticPool 确保 SQLite 内存数据库在所有连接间共享。
-    测试前建表，测试后销毁，确保用例之间完全隔离。
-    """
+def db_engine(tmp_path):
+    database_path = tmp_path / "test.db"
     engine = create_engine(
-        "sqlite://",
+        f"sqlite:///{database_path.as_posix()}",
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
         echo=False,
     )
-
-    # SQLite 需要启用外键约束
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
+    event.listen(engine, "connect", enable_sqlite_foreign_keys)
     Base.metadata.create_all(bind=engine)
+    try:
+        yield engine, database_path
+    finally:
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+@pytest.fixture(scope="function")
+def db_session(db_engine):
+    engine, _ = db_engine
     TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = TestSessionLocal()
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine)
-        engine.dispose()
 
 
 @pytest.fixture(scope="function")
-def client(db_session):
-    """
-    FastAPI TestClient，自动将 get_session 依赖替换为测试数据库会话。
-    """
+def client(db_engine):
+    """将 AsyncSession 依赖替换为基于 aiosqlite 的测试会话。"""
+    _, database_path = db_engine
+    async_engine = create_async_engine(
+        f"sqlite+aiosqlite:///{database_path.as_posix()}",
+        echo=False,
+    )
+    event.listen(async_engine.sync_engine, "connect", enable_sqlite_foreign_keys)
+    TestAsyncSessionLocal = async_sessionmaker(
+        bind=async_engine,
+        autoflush=False,
+        expire_on_commit=False,
+    )
 
-    def override_get_session():
-        yield db_session
+    async def override_get_async_session():
+        async with TestAsyncSessionLocal() as session:
+            yield session
 
-    app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_async_session] = override_get_async_session
 
     with TestClient(app, base_url="http://test") as c:
         yield c
 
     app.dependency_overrides.clear()
+    asyncio.run(async_engine.dispose())
 
 
 @pytest.fixture(scope="function")
@@ -90,12 +106,11 @@ def test_user(db_session):
     """创建普通测试用户"""
     user = User(
         username="testuser",
-        password=get_password_hash("Test123456"),
         email="test@example.com",
-        nickname="Test User",
+        hashed_password=get_password_hash("Test123456"),
+        display_name="Test User",
         is_active=True,
         is_superuser=False,
-        status=1,
     )
     db_session.add(user)
     db_session.commit()
@@ -108,12 +123,11 @@ def test_superuser(db_session):
     """创建超级管理员测试用户"""
     user = User(
         username="admin",
-        password=get_password_hash("Admin123456"),
         email="admin@example.com",
-        nickname="Admin",
+        hashed_password=get_password_hash("Admin123456"),
+        display_name="Admin",
         is_active=True,
         is_superuser=True,
-        status=1,
     )
     db_session.add(user)
     db_session.commit()

@@ -20,7 +20,7 @@ engine = create_engine(DATABASE_URL, echo=settings.DEBUG, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 async_engine = create_async_engine(
-    DATABASE_URL.set(drivername="mysql+aiomysql"),
+    DATABASE_URL.set(drivername="mysql+asyncmy"),
     echo=settings.DEBUG,
     pool_pre_ping=True,
 )

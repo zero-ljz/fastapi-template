@@ -16,7 +16,7 @@ pyjwt
 sqlalchemy
 alembic
 mysqlclient
-aiomysql
+asyncmy
 
 sqladmin[full]
 itsdangerous # SessionMiddleware 需要

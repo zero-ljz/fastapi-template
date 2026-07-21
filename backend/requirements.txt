@@ -16,4 +16,4 @@ pyjwt
 sqlalchemy
 alembic
 mysqlclient
-asyncmy
+aiomysql

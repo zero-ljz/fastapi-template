@@ -15,13 +15,12 @@
 
 ## 上线前必须处理
 
-1. `app/main.py` 的 SPA fallback 必须删除或增加严格的路径边界校验。当前路径拼接不能作为安全的静态文件服务。
-2. `/uploads` 当前是公开目录。私有文件必须通过鉴权接口或独立对象存储提供。
-3. 为登录、注册和刷新接口增加跨 worker 生效的限流。
-4. 使用非 root 数据库用户，并停止对公网暴露数据库端口。
-5. 如果要求安全事件后 Access Token 立即失效，实现 `auth_version`。
-6. 统一处理 `HTTPException` 和请求参数校验错误，避免多种错误协议。
-7. 根据部署环境限制 Host、CORS、代理头、请求体大小和超时。
+1. `/uploads` 当前是公开目录。私有文件必须通过鉴权接口或独立对象存储提供。
+2. 为登录、注册和刷新接口增加跨 worker 生效的限流。
+3. 使用非 root 数据库用户，并停止对公网暴露数据库端口。
+4. 如果要求安全事件后 Access Token 立即失效，实现 `auth_version`。
+5. 统一处理 `HTTPException` 和请求参数校验错误，避免多种错误协议。
+6. 根据部署环境限制 Host、CORS、代理头、请求体大小和超时。
 
 ## 日志与敏感数据
 
@@ -38,10 +37,10 @@
 
 ## 依赖与供应链
 
-- Dependabot每周检查 Python 和 GitHub Actions 更新；
-- Security Workflow 每周运行 `pip-audit`；
+- Dependabot 每周检查 Python、npm 和 GitHub Actions 更新；
+- Security Workflow 每周运行 `pip-audit` 和 `npm audit`；
 - 依赖升级必须通过完整 CI；
-- 正式项目应锁定精确依赖版本；
+- Python 直接依赖在 `.in` 文件中约束，完整依赖树在 `.txt` 文件中精确锁定；
 - 不要在 Pull Request 工作流中使用生产密钥。
 
 ## 项目级责任

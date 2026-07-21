@@ -12,7 +12,7 @@ npm install
 npm run dev
 ```
 
-也可以在仓库根目录激活后端虚拟环境后运行 `npm run dev`，同时启动前后端。
+后端依赖准备完成后，也可以直接在仓库根目录运行 `npm run dev`，同时启动前后端。根目录脚本会优先使用 `backend/.venv`，不要求提前激活虚拟环境。
 
 ## 常用命令
 
@@ -24,6 +24,8 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+`npm run build` 会先执行完整 TypeScript 类型检查，再生成生产构建；可单独运行 `npm run typecheck` 做快速检查。
 
 后端接口发生变化后，应从仓库根目录运行：
 

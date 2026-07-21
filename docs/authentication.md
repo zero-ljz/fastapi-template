@@ -13,7 +13,7 @@ POST /api/v1/login/logout        撤销当前令牌族
 POST /api/v1/login/logout-all    撤销用户全部 Refresh Session
 ```
 
-登录接口接受 OAuth2 表单。`username` 字段可以填写邮箱或用户名。客户端必须通过 `X-Client-Type` 声明 `web`、`desktop` 或 `mobile`；缺失或未知值按 Web 端处理，不签发 Refresh Token。`X-Device-Name` 只用于展示和审计，不能作为安全边界。
+登录接口接受 OAuth2 表单。`username` 字段可以填写邮箱或用户名。只有登录请求需要通过 `X-Client-Type` 声明 `web`、`desktop` 或 `mobile`；缺失或未知值按 Web 端处理，不签发 Refresh Token。`X-Device-Name` 只用于展示和审计，不能作为安全边界。
 
 Access Token 包含：
 

@@ -27,9 +27,6 @@ const authMiddleware: Middleware = {
 export const api = createClient<paths>({
   baseUrl: env.VITE_API_BASE_URL,
   fetch: (input) => globalThis.fetch(input),
-  headers: {
-    'X-Client-Type': 'web',
-  },
 })
 
 api.use(authMiddleware)

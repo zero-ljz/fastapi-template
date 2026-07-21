@@ -30,6 +30,7 @@ export function LoginPage() {
     setSubmitError(null)
     try {
       const { data } = await api.POST('/api/v1/login/access-token', {
+        headers: { 'X-Client-Type': 'web' },
         body: { ...values, scope: '' },
         bodySerializer(body) {
           return new URLSearchParams({

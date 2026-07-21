@@ -65,6 +65,6 @@ USER appuser
 
 EXPOSE 8000
 
-# 容器入口：先执行初始化脚本，再启动应用服务
+# 容器入口：先执行数据库迁移，再启动应用服务
 ENTRYPOINT ["bash", "scripts/entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "-k", "uvicorn.workers.UvicornWorker", "--workers", "4", "--timeout", "120", "app.main:app"]

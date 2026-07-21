@@ -11,15 +11,12 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      # 覆盖数据库和缓存主机为容器服务名
+      # 覆盖数据库主机为容器服务名
       DB_HOST: mysql
-      REDIS_HOST: redis
     ports:
       - "8000:8000"
     depends_on:
       mysql:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -30,7 +27,6 @@ services:
       start_period: 40s
     volumes:
       - app-data:/app/uploads
-      - app-logs:/app/logs
     networks:
       - app-network
 
@@ -59,27 +55,10 @@ services:
     networks:
       - app-network
 
-  # ---------- Redis 缓存服务 ----------
-  redis:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - app-network
-
 # ---------- 持久化数据卷 ----------
 volumes:
   app-data:
-  app-logs:
   mysql-data:
-  redis-data:
 
 # ---------- 自定义网络 ----------
 networks:

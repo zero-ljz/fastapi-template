@@ -44,21 +44,6 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_EMAIL: str = ""
     FIRST_SUPERUSER_PASSWORD: str = ""
 
-    # --- Redis ---
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_PASSWORD: str = ""
-    REDIS_DB: int = 0
-
-    # --- SMTP 邮件 ---
-    SMTP_TLS: bool = True
-    SMTP_PORT: int = 587
-    SMTP_HOST: str = ""
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    EMAILS_FROM_EMAIL: str = ""
-    EMAILS_FROM_NAME: str = ""
-
     # --- 日志 ---
     LOG_LEVEL: str = "INFO"
 
@@ -94,10 +79,6 @@ class Settings(BaseSettings):
                     "FIRST_SUPERUSER_PASSWORD must be changed in production"
                 )
         return self
-
-    @property
-    def smtp_enabled(self) -> bool:
-        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
 
 
 settings = Settings()

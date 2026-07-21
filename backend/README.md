@@ -9,7 +9,7 @@
 
 模板不默认包含 RBAC、多租户、通知、字典、文件或演示业务表。
 
-核心 API 路由、认证依赖和 Service 全部使用 `AsyncSession`。同步引擎只用于 SQLAdmin、Alembic、初始化和维护脚本，禁止在 `async def` API 中调用同步数据库 Session。
+核心 API 路由、认证依赖和 Service 全部使用 `AsyncSession`。同步引擎只用于 Alembic、初始化和维护脚本，禁止在 `async def` API 中调用同步数据库 Session。
 
 ## 本地启动
 
@@ -17,11 +17,17 @@
 cp .env.example .env
 pip install -r requirements-dev.txt
 alembic upgrade head
-python app/initial_data.py
+python -m app.initial_data  # 首次需要管理员时显式执行
 python run.py
 ```
 
-初始化脚本只会幂等创建 `.env` 中配置的首个超级管理员，不会写入演示账号或业务数据。
+初始化脚本不会随应用启动自动执行。需要管理员时手动运行，它只会幂等创建 `.env` 中配置的首个超级管理员，不会写入演示账号或业务数据。
+
+Docker 环境可显式运行：
+
+```bash
+docker compose exec app python -m app.initial_data
+```
 
 ## 主要认证接口
 

@@ -43,41 +43,29 @@ class InterceptHandler(logging.Handler):
 
 
 def setup_logging() -> None:
-    """初始化日志配置，应在应用启动时调用"""
+    """初始化 stdout 日志；生产环境输出结构化 JSON。"""
 
     log_level = settings.LOG_LEVEL.upper()
+    is_production = settings.ENVIRONMENT.lower() == "production"
 
-    # 移除 loguru 默认 handler
     logger.remove()
+    logger.configure(extra={"request_id": "-"})
 
-    # 控制台输出（彩色）
     logger.add(
-        sys.stderr,
+        sys.stdout,
         level=log_level,
         format=(
             "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
             "<level>{level: <8}</level> | "
-            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> — "
+            "request_id={extra[request_id]} | "
+            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
             "<level>{message}</level>"
         ),
-        colorize=True,
+        colorize=sys.stdout.isatty() and not is_production,
+        serialize=is_production,
+        enqueue=True,
         backtrace=True,
         diagnose=settings.DEBUG,
-    )
-
-    # 文件输出（按天轮转）
-    log_dir = settings.ROOT_PATH / "logs"
-    log_dir.mkdir(exist_ok=True)
-
-    logger.add(
-        str(log_dir / "{time:YYYY-MM-DD}.log"),
-        level=log_level,
-        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} — {message}",
-        rotation="00:00",  # 每天午夜轮转
-        retention="30 days",  # 保留 30 天
-        compression="gz",  # 压缩旧日志
-        encoding="utf-8",
-        enqueue=True,  # 线程安全
     )
 
     # 拦截 uvicorn / sqlalchemy / alembic 等标准库日志
@@ -96,4 +84,8 @@ def setup_logging() -> None:
     logging.root.handlers = [InterceptHandler()]
     logging.root.setLevel(log_level)
 
-    logger.info("日志系统初始化完成 (级别: {})", log_level)
+    logger.info(
+        "日志系统初始化完成 | level={} | format={}",
+        log_level,
+        "json" if is_production else "text",
+    )

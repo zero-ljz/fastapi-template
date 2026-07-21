@@ -1,13 +1,14 @@
 # app/main.py
 
 from contextlib import asynccontextmanager
+from time import perf_counter
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.admin import register_admin
 from app.api.main import api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
@@ -60,10 +61,6 @@ app.add_middleware(
 # 注册全局异常处理器
 register_exception_handlers(app)
 
-# SQLAdmin 后台，访问路径: /admin
-register_admin(app)
-
-
 # ---------------------------------------------------------------------------
 # 请求日志中间件
 # ---------------------------------------------------------------------------
@@ -71,16 +68,22 @@ register_admin(app)
 
 @app.middleware("http")
 async def log_request(request: Request, call_next):
-    """记录每个 HTTP 请求的关键信息"""
-    # 构造请求行
-    query = f"?{request.url.query}" if request.url.query else ""
-    request_line = f"{request.method} {request.url.path}{query}"
+    """记录请求标识、状态码与耗时，不记录可能包含敏感信息的查询参数。"""
+    request_id = uuid4().hex
+    started_at = perf_counter()
 
-    logger.debug("→ {}", request_line)
+    with logger.contextualize(request_id=request_id):
+        response = await call_next(request)
+        duration_ms = (perf_counter() - started_at) * 1000
+        logger.info(
+            "HTTP request | method={} | path={} | status={} | duration_ms={:.2f}",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+        )
 
-    response = await call_next(request)
-
-    logger.debug("← {} | {}", request_line, response.status_code)
+    response.headers["X-Request-ID"] = request_id
     return response
 
 

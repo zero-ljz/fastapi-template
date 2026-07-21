@@ -32,11 +32,6 @@ echo "🔄 正在执行数据库迁移 (alembic upgrade head)..."
 alembic upgrade head
 echo "✅ 数据库迁移完成！"
 
-# ---------- 初始化首个管理员 ----------
-echo "🌱 正在初始化首个管理员..."
-python app/initial_data.py
-echo "✅ 管理员初始化完成！"
-
 # ---------- 启动应用服务 ----------
 echo "🚀 正在启动应用服务..."
 exec "$@"

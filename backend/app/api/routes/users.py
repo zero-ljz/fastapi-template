@@ -17,10 +17,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Query
+from fastapi import APIRouter, Query
 
 from app.api.deps import AsyncSessionDep, CurrentUser
-from app.core.email import send_welcome_email
 from app.core.exceptions import ForbiddenException, NotFoundException
 from app.schemas.user import (
     UserCreate,
@@ -45,20 +44,9 @@ async def register(
     *,
     db: AsyncSessionDep,
     user_in: UserCreate,
-    background_tasks: BackgroundTasks,
 ):
     """注册新用户"""
-    user = await user_service.create_user(db, user_in)
-
-    # 异步发送欢迎邮件
-    if user.email:
-        background_tasks.add_task(
-            send_welcome_email,
-            to=user.email,
-            username=user.display_name or user.username or user.email,
-        )
-
-    return user
+    return await user_service.create_user(db, user_in)
 
 
 # ---------------------------------------------------------------------------

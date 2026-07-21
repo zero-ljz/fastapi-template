@@ -5,13 +5,11 @@
 ## 核心能力
 
 - FastAPI + SQLAlchemy 2.0 + Alembic + MySQL
-- 核心 API 使用 `async def + AsyncSession`，同步引擎仅供后台与运维脚本
-- Redis 服务与环境配置预留
+- 核心 API 使用 `async def + AsyncSession`，同步引擎仅供迁移与运维脚本
 - 短期 JWT Access Token
 - 按设备保存、轮换和撤销的 Refresh Token
 - 邮箱或用户名登录
-- SQLAdmin 后台
-- 统一异常响应与 Loguru 日志
+- 统一异常响应与 stdout 日志；生产环境自动输出结构化 JSON
 - Pytest 测试和 Ruff 代码检查
 - Docker Compose 本地编排
 
@@ -31,7 +29,7 @@ cd backend
 cp .env.example .env
 pip install -r requirements-dev.txt
 alembic upgrade head
-python app/initial_data.py
+python -m app.initial_data  # 首次需要管理员时显式执行
 python run.py
 ```
 
@@ -39,10 +37,10 @@ python run.py
 
 ```bash
 docker compose --env-file backend/.env up -d
+docker compose exec app python -m app.initial_data  # 可选：创建首个管理员
 ```
 
 - API 文档：http://127.0.0.1:8000/docs
-- 后台管理：http://127.0.0.1:8000/admin
 - 健康检查：http://127.0.0.1:8000/api/v1/health
 
 ## 认证流程

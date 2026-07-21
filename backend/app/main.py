@@ -4,9 +4,8 @@ from contextlib import asynccontextmanager
 from time import perf_counter
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.main import api_router
@@ -56,6 +55,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
 
 # 注册全局异常处理器
@@ -111,20 +111,3 @@ app.mount(
 app.mount(
     "/uploads", StaticFiles(directory=settings.ROOT_PATH / "uploads"), name="uploads"
 )
-
-
-# ---------------------------------------------------------------------------
-# 前端 SPA 兜底
-# ---------------------------------------------------------------------------
-
-
-@app.get("/{full_path:path}")
-async def serve_frontend(full_path: str):
-    public_path = settings.ROOT_PATH.parent / "frontend" / "dist"
-    file_path = public_path / full_path
-    if file_path.is_file():
-        return FileResponse(file_path)
-    index_path = public_path / "index.html"
-    if not index_path.exists():
-        raise HTTPException(status_code=404, detail="Not Found")
-    return FileResponse(index_path)

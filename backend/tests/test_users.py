@@ -89,18 +89,29 @@ class TestRegister:
 class TestLogin:
     """登录相关测试"""
 
-    def test_login_success(self, client, test_user):
+    def test_web_login_returns_no_refresh_token(self, client, test_user):
         """正确凭据登录成功"""
         response = client.post(
             "/api/v1/login/access-token",
             data={"username": "testuser", "password": "Test123456"},
+            headers={"X-Client-Type": "web"},
         )
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
-        assert "refresh_token" in data
+        assert data["refresh_token"] is None
         assert data["expires_in"] > 0
         assert data["token_type"] == "bearer"
+
+    def test_desktop_login_returns_refresh_token(self, client, test_user):
+        response = client.post(
+            "/api/v1/login/access-token",
+            data={"username": "testuser", "password": "Test123456"},
+            headers={"X-Client-Type": "desktop"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["refresh_token"]
 
     def test_login_wrong_password(self, client, test_user):
         """密码错误应返回 401"""
@@ -288,6 +299,7 @@ class TestRefreshSession:
         login = client.post(
             "/api/v1/login/access-token",
             data={"username": "testuser", "password": "Test123456"},
+            headers={"X-Client-Type": "desktop"},
         )
         refresh_token = login.json()["refresh_token"]
         logout = client.post(
@@ -304,6 +316,7 @@ class TestRefreshSession:
         login = client.post(
             "/api/v1/login/access-token",
             data={"username": "testuser", "password": "Test123456"},
+            headers={"X-Client-Type": "desktop"},
         )
         data = login.json()
         changed = client.patch(

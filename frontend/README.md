@@ -1,11 +1,52 @@
 # Frontend
 
-前端目录当前仅作为占位，计划技术栈为 React + TypeScript + Vite + Zustand + shadcn/ui。
+基于 React、TypeScript 和 Vite 的独立 Web 客户端。模板内置 React Router、TanStack Query、React Hook Form、Zod、OpenAPI 类型客户端、ESLint、Prettier、Vitest、Testing Library 和 MSW。
 
-建议初始化后保留以下规范：
+开发和构建使用 Node.js 24+。
 
-- 使用 TypeScript 严格模式
-- 使用 ESLint 和 Prettier
-- API 客户端统一封装
-- 路由、状态、组件分层组织
-- 与后端 `BACKEND_CORS_ORIGINS` 保持一致
+## 本地开发
+
+```bash
+cp .env.example .env
+npm install
+npm run dev
+```
+
+也可以在仓库根目录激活后端虚拟环境后运行 `npm run dev`，同时启动前后端。
+
+## 常用命令
+
+```bash
+npm run api:types      # 根据已导出的 openapi.json 更新 TypeScript 类型
+npm run lint
+npm run format:check
+npm run typecheck
+npm test
+npm run build
+```
+
+后端接口发生变化后，应从仓库根目录运行：
+
+```bash
+npm run api:generate
+```
+
+该命令先由 FastAPI 导出 `frontend/openapi.json`，再生成 `src/api/schema.d.ts`。这两个文件都应提交，CI 会检查它们是否过期。
+
+## 认证边界
+
+Web 客户端登录时发送 `X-Client-Type: web`。后端只返回短期 Access Token，前端仅在内存中保存；不会将 Token 写入 localStorage、sessionStorage、URL 或日志。刷新页面后需要重新登录，收到 `401` 时会清理认证状态和 TanStack Query 缓存。
+
+桌面端和移动端应发送 `desktop` 或 `mobile`，并把 Refresh Token 保存到操作系统安全凭据存储中，不要复用 Web 端的内存实现。
+
+## 环境变量
+
+只有 `VITE_API_BASE_URL` 会进入浏览器构建。所有 `VITE_*` 变量都属于公开信息，禁止放入密钥。启动和构建时会使用 Zod 校验环境变量。
+
+## 独立部署
+
+`Dockerfile` 负责构建静态文件，并由 Nginx 提供 SPA history fallback。FastAPI 不托管前端文件。构建示例：
+
+```bash
+docker build --build-arg VITE_API_BASE_URL=https://api.example.com -t app-frontend frontend
+```

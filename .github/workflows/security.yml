@@ -4,10 +4,14 @@ on:
   push:
     paths:
       - "backend/requirements*.txt"
+      - "frontend/package*.json"
+      - "package*.json"
       - ".github/workflows/security.yml"
   pull_request:
     paths:
       - "backend/requirements*.txt"
+      - "frontend/package*.json"
+      - "package*.json"
       - ".github/workflows/security.yml"
   schedule:
     - cron: "17 3 * * 1"
@@ -43,3 +47,31 @@ jobs:
 
       - name: Audit installed dependencies
         run: python -m pip_audit
+
+  node-dependency-audit:
+    name: Node dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix frontend ci
+
+      - name: Audit dependencies
+        run: |
+          npm audit --audit-level=high
+          npm --prefix frontend audit --audit-level=high

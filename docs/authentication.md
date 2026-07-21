@@ -1,6 +1,6 @@
 # 认证设计
 
-模板使用短期 JWT Access Token 和按设备保存的 Refresh Token。Access Token 用于访问普通 API，Refresh Token 只用于续期和撤销会话。
+模板使用短期 JWT Access Token，并只为桌面端和移动端签发按设备保存的 Refresh Token。Access Token 用于访问普通 API，Refresh Token 只用于续期和撤销会话。
 
 ## 登录与续期
 
@@ -13,7 +13,7 @@ POST /api/v1/login/logout        撤销当前令牌族
 POST /api/v1/login/logout-all    撤销用户全部 Refresh Session
 ```
 
-登录接口接受 OAuth2 表单。`username` 字段可以填写邮箱或用户名，客户端可通过 `X-Client-Type` 和 `X-Device-Name` 提供设备描述；这些字段只用于展示和审计，不能作为安全边界。
+登录接口接受 OAuth2 表单。`username` 字段可以填写邮箱或用户名。客户端必须通过 `X-Client-Type` 声明 `web`、`desktop` 或 `mobile`；缺失或未知值按 Web 端处理，不签发 Refresh Token。`X-Device-Name` 只用于展示和审计，不能作为安全边界。
 
 Access Token 包含：
 
@@ -26,7 +26,7 @@ Refresh Token 是高熵随机字符串，数据库只保存 SHA-256 哈希。每
 
 ## 客户端存储
 
-- Web：优先只在内存保存 Access Token，不要写入 `localStorage`。当前接口仍会向所有客户端返回 Refresh Token；如果 Web 不使用 Refresh Token，应在上线前拆分登录策略。
+- Web：登录响应的 `refresh_token` 为 `null`，只在内存保存 Access Token，不要写入 `localStorage`；刷新页面后需要重新登录。
 - 桌面和移动端：使用操作系统提供的安全凭据存储保存 Refresh Token。
 - 所有客户端：不要在日志、错误上报、URL 或分析事件中记录 Token。
 

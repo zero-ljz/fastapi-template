@@ -18,6 +18,8 @@ from app.services import user as user_service
 
 router = APIRouter(tags=["认证"])
 
+REFRESH_TOKEN_CLIENT_TYPES = {"desktop", "mobile"}
+
 
 def _request_metadata(request: Request) -> tuple[str | None, str | None]:
     client_ip = request.client.host if request.client else None
@@ -43,14 +45,17 @@ async def login_access_token(
     user = await user_service.authenticate(db, form_data.username, form_data.password)
     await user_service.update_login_info(db, user)
     client_ip, user_agent = _request_metadata(request)
-    refresh_token = await auth_service.create_refresh_session(
-        db,
-        user=user,
-        client_type=x_client_type or "unknown",
-        device_name=x_device_name,
-        ip_address=client_ip,
-        user_agent=user_agent,
-    )
+    client_type = (x_client_type or "web").lower()
+    refresh_token = None
+    if client_type in REFRESH_TOKEN_CLIENT_TYPES:
+        refresh_token = await auth_service.create_refresh_session(
+            db,
+            user=user,
+            client_type=client_type,
+            device_name=x_device_name,
+            ip_address=client_ip,
+            user_agent=user_agent,
+        )
     logger.info("用户登录成功 | id={} | ip={}", user.id, client_ip)
     return Token(
         access_token=_create_access_token(user.id),

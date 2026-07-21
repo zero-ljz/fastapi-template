@@ -56,3 +56,7 @@ python -m app.initial_data
 ```
 
 生产环境应在初始化完成后从运行环境移除初始管理员密码。
+
+## Web 前端配置
+
+前端只读取 `VITE_API_BASE_URL`，示例见 `frontend/.env.example`。Vite 会把所有 `VITE_*` 变量打包进浏览器代码，因此只能存放公开配置，不能包含数据库密码、JWT 密钥或第三方服务密钥。

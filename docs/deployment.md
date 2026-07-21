@@ -1,6 +1,6 @@
 # 单机部署
 
-模板面向单机 Docker Compose 部署。推荐由 Caddy 或 Nginx 负责 TLS、请求大小限制和入口限流，FastAPI 与 MySQL 只运行在内部网络。
+模板面向单机部署，但前端与 API 独立构建。推荐由 Caddy 或 Nginx 负责 TLS、静态前端、请求大小限制和入口限流，FastAPI 与 MySQL 只运行在内部网络。FastAPI 不再包含 SPA catch-all，也不托管 `frontend/dist`。
 
 ## 首次部署
 
@@ -34,6 +34,18 @@
 
 5. 验证健康检查和 API 文档访问策略。
 
+## 前端镜像
+
+前端使用独立的多阶段 Dockerfile：
+
+```bash
+docker build \
+  --build-arg VITE_API_BASE_URL=https://api.example.com \
+  -t app-frontend frontend
+```
+
+Nginx 镜像负责静态文件和前端路由 fallback。实际部署可让 `app.example.com` 指向前端镜像、`api.example.com` 指向 FastAPI；也可以由入口代理把同域 `/api` 转发给 FastAPI。无论哪种方式，都要把真实 Web 来源加入 `BACKEND_CORS_ORIGINS`。
+
 ## 数据库迁移
 
 容器入口当前会在启动应用前执行 `alembic upgrade head`，适用于单实例部署。扩展到多个应用实例前，必须把迁移改成独立的一次性部署步骤。
@@ -65,4 +77,4 @@
 
 ## 发布验证
 
-GitHub Actions 会检查 Ruff、测试、真实 MySQL 迁移和 Docker 镜像构建。自动部署不属于模板范围；具体项目应根据服务器和密钥管理方式单独添加发布流程。
+GitHub Actions 会检查前后端格式、类型、测试、OpenAPI 生成产物、真实 MySQL 迁移、依赖漏洞和两个 Docker 镜像构建。自动部署不属于模板范围；具体项目应根据服务器和密钥管理方式单独添加发布流程。

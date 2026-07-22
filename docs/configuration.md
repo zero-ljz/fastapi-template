@@ -6,7 +6,7 @@
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `PROJECT_NAME` | `FastAPI Application` | OpenAPI 和日志中的项目名称 |
+| `PROJECT_NAME` | `FastAPI Template` | OpenAPI 和日志中的项目名称 |
 | `VERSION` | `1.0.0` | 应用版本 |
 | `API_V1_STR` | `/api/v1` | API 版本前缀 |
 | `ENVIRONMENT` | `development` | `development`、`testing` 或 `production` |

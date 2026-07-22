@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     ROOT_PATH: Path = Path(__file__).resolve().parent.parent.parent
 
-    PROJECT_NAME: str = "FastAPI Application"
+    PROJECT_NAME: str = "FastAPI Template"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"

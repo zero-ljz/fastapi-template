@@ -11,6 +11,15 @@
 
 核心 API 路由、认证依赖和 Service 全部使用 `AsyncSession`。同步引擎只用于 Alembic、初始化和维护脚本，禁止在 `async def` API 中调用同步数据库 Session。
 
+## 代码边界
+
+- `app/models/` 按数据模型拆分文件，并通过 `app.models` 统一导出公共模型；
+- `app/middleware/` 保存 HTTP 请求级中间件，`main.py` 只负责应用组装；
+- `app/services/` 实现业务逻辑，只执行查询、写入和 `flush()`，不决定事务提交；
+- 写接口通过 `app.core.unit_of_work` 在路由层统一 `commit/rollback`，一个完整用例只提交一次。
+
+Refresh Token 复用检测是一个特殊事务：接口虽然返回 401，但必须提交对同一令牌族的撤销。该语义通过 Unit of Work 的 `commit_on` 显式声明。
+
 ## 本地启动
 
 ```bash

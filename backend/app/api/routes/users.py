@@ -19,6 +19,7 @@ from fastapi import APIRouter, Query
 
 from app.api.deps import AsyncSessionDep, CurrentUser
 from app.core.exceptions import ForbiddenException, NotFoundException
+from app.core.unit_of_work import unit_of_work
 from app.schemas.user import (
     UserCreate,
     UserListResponse,
@@ -44,7 +45,9 @@ async def register(
     user_in: UserCreate,
 ):
     """注册新用户"""
-    return await user_service.create_user(db, user_in)
+    async with unit_of_work(db):
+        user = await user_service.create_user(db, user_in)
+    return user
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +69,9 @@ async def update_current_user(
     user_in: UserUpdate,
 ):
     """更新当前登录用户的个人信息"""
-    return await user_service.update_user(db, current_user, user_in)
+    async with unit_of_work(db):
+        user = await user_service.update_user(db, current_user, user_in)
+    return user
 
 
 @router.patch("/me/password", summary="修改密码")
@@ -77,8 +82,9 @@ async def update_current_user_password(
     password_in: UserUpdatePassword,
 ):
     """修改当前登录用户的密码"""
-    await user_service.update_password(db, current_user, password_in)
-    await auth_service.revoke_all_user_sessions(db, current_user.id)
+    async with unit_of_work(db):
+        await user_service.update_password(db, current_user, password_in)
+        await auth_service.revoke_all_user_sessions(db, current_user.id)
     return {"message": "密码修改成功"}
 
 
@@ -146,5 +152,6 @@ async def delete_user(
     if user.id == current_user.id:
         raise ForbiddenException(detail="不能删除自己")
 
-    await user_service.delete_user(db, user)
+    async with unit_of_work(db):
+        await user_service.delete_user(db, user)
     return {"message": "用户已删除"}

@@ -11,7 +11,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.api.deps import AsyncSessionDep, CurrentUser
 from app.core import security
 from app.core.config import settings
+from app.core.exceptions import UnauthorizedException
 from app.core.logging import logger
+from app.core.unit_of_work import unit_of_work
 from app.schemas.token import RefreshTokenRequest, RevokeTokenRequest, Token
 from app.services import auth as auth_service
 from app.services import user as user_service
@@ -42,20 +44,23 @@ async def login_access_token(
     x_client_type: Annotated[str | None, Header(max_length=32)] = None,
     x_device_name: Annotated[str | None, Header(max_length=128)] = None,
 ):
-    user = await user_service.authenticate(db, form_data.username, form_data.password)
-    await user_service.update_login_info(db, user)
-    client_ip, user_agent = _request_metadata(request)
-    client_type = (x_client_type or "web").lower()
-    refresh_token = None
-    if client_type in REFRESH_TOKEN_CLIENT_TYPES:
-        refresh_token = await auth_service.create_refresh_session(
-            db,
-            user=user,
-            client_type=client_type,
-            device_name=x_device_name,
-            ip_address=client_ip,
-            user_agent=user_agent,
+    async with unit_of_work(db):
+        user = await user_service.authenticate(
+            db, form_data.username, form_data.password
         )
+        await user_service.update_login_info(db, user)
+        client_ip, user_agent = _request_metadata(request)
+        client_type = (x_client_type or "web").lower()
+        refresh_token = None
+        if client_type in REFRESH_TOKEN_CLIENT_TYPES:
+            refresh_token = await auth_service.create_refresh_session(
+                db,
+                user=user,
+                client_type=client_type,
+                device_name=x_device_name,
+                ip_address=client_ip,
+                user_agent=user_agent,
+            )
     logger.info("用户登录成功 | id={} | ip={}", user.id, client_ip)
     return Token(
         access_token=_create_access_token(user.id),
@@ -69,14 +74,15 @@ async def refresh_access_token(
     *, request: Request, db: AsyncSessionDep, token_in: RefreshTokenRequest
 ):
     client_ip, user_agent = _request_metadata(request)
-    user, refresh_token = await auth_service.rotate_refresh_session(
-        db,
-        raw_token=token_in.refresh_token,
-        client_type=token_in.client_type,
-        device_name=token_in.device_name,
-        ip_address=client_ip,
-        user_agent=user_agent,
-    )
+    async with unit_of_work(db, commit_on=(UnauthorizedException,)):
+        user, refresh_token = await auth_service.rotate_refresh_session(
+            db,
+            raw_token=token_in.refresh_token,
+            client_type=token_in.client_type,
+            device_name=token_in.device_name,
+            ip_address=client_ip,
+            user_agent=user_agent,
+        )
     return Token(
         access_token=_create_access_token(user.id),
         refresh_token=refresh_token,
@@ -86,11 +92,13 @@ async def refresh_access_token(
 
 @router.post("/login/logout", summary="退出当前设备")
 async def logout(*, db: AsyncSessionDep, token_in: RevokeTokenRequest):
-    await auth_service.revoke_refresh_session(db, token_in.refresh_token)
+    async with unit_of_work(db):
+        await auth_service.revoke_refresh_session(db, token_in.refresh_token)
     return {"message": "已退出登录"}
 
 
 @router.post("/login/logout-all", summary="退出全部设备")
 async def logout_all(*, db: AsyncSessionDep, current_user: CurrentUser):
-    await auth_service.revoke_all_user_sessions(db, current_user.id)
+    async with unit_of_work(db):
+        await auth_service.revoke_all_user_sessions(db, current_user.id)
     return {"message": "已退出全部设备"}

@@ -1,10 +1,8 @@
 # app/main.py
 
 from contextlib import asynccontextmanager
-from time import perf_counter
-from uuid import uuid4
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -12,6 +10,7 @@ from app.api.main import api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger, setup_logging
+from app.middleware.request_context import request_context_middleware
 
 # ---------------------------------------------------------------------------
 # 日志初始化
@@ -65,25 +64,7 @@ register_exception_handlers(app)
 # ---------------------------------------------------------------------------
 
 
-@app.middleware("http")
-async def log_request(request: Request, call_next):
-    """记录请求标识、状态码与耗时，不记录可能包含敏感信息的查询参数。"""
-    request_id = uuid4().hex
-    started_at = perf_counter()
-
-    with logger.contextualize(request_id=request_id):
-        response = await call_next(request)
-        duration_ms = (perf_counter() - started_at) * 1000
-        logger.info(
-            "HTTP request | method={} | path={} | status={} | duration_ms={:.2f}",
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration_ms,
-        )
-
-    response.headers["X-Request-ID"] = request_id
-    return response
+app.middleware("http")(request_context_middleware)
 
 
 # ---------------------------------------------------------------------------

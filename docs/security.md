@@ -8,7 +8,7 @@
 - 短期 JWT Access Token；
 - Refresh Token 只保存哈希；
 - Refresh Token 轮换和复用检测；
-- 修改密码后撤销全部 Refresh Session；
+- 修改密码与撤销全部 Refresh Session 在同一事务中完成；
 - 生产环境拒绝调试模式和默认 JWT 密钥；
 - 日志不记录查询字符串，并为响应生成 `X-Request-ID`；
 - CI 执行测试、迁移验证、容器构建和依赖审计。

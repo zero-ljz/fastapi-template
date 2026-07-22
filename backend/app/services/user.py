@@ -74,9 +74,8 @@ async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
     )
     db.add(user)
     try:
-        await db.commit()
+        await db.flush()
     except IntegrityError as exc:
-        await db.rollback()
         raise ConflictException(detail="用户名或邮箱已存在") from exc
     await db.refresh(user)
     logger.info("新用户注册 | id={} | email={}", user.id, user.email)
@@ -97,9 +96,8 @@ async def update_user(db: AsyncSession, user: User, user_in: UserUpdate) -> User
     for field, value in update_data.items():
         setattr(user, field, value)
     try:
-        await db.commit()
+        await db.flush()
     except IntegrityError as exc:
-        await db.rollback()
         raise ConflictException(detail="用户信息已被占用") from exc
     await db.refresh(user)
     return user
@@ -118,12 +116,12 @@ async def update_password(
     user.hashed_password = await to_thread.run_sync(
         get_password_hash, password_in.new_password
     )
-    await db.commit()
+    await db.flush()
 
 
 async def delete_user(db: AsyncSession, user: User) -> None:
     await db.delete(user)
-    await db.commit()
+    await db.flush()
 
 
 async def authenticate(db: AsyncSession, identifier: str, password: str) -> User:
@@ -144,10 +142,10 @@ async def authenticate(db: AsyncSession, identifier: str, password: str) -> User
         raise UnauthorizedException(detail="用户已被禁用")
     if updated_hash:
         user.hashed_password = updated_hash
-        await db.commit()
+        await db.flush()
     return user
 
 
 async def update_login_info(db: AsyncSession, user: User) -> None:
     user.last_login_at = utc_now()
-    await db.commit()
+    await db.flush()

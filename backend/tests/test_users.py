@@ -8,8 +8,10 @@
 from datetime import UTC, datetime, timedelta
 
 import jwt
+import pytest
 
 from app.core.config import settings
+from app.services import auth as auth_service
 
 # ===================================================================
 # 注册
@@ -209,6 +211,36 @@ class TestPassword:
             json={"old_password": "WrongOldPwd", "new_password": "NewPass123"},
         )
         assert response.status_code == 400
+
+    def test_password_change_rolls_back_when_session_revocation_fails(
+        self, client, auth_headers, monkeypatch
+    ):
+        """密码与会话撤销属于同一事务，任一步失败都不应留下部分更新。"""
+
+        async def fail_to_revoke_sessions(*args, **kwargs):
+            raise RuntimeError("simulated session revocation failure")
+
+        monkeypatch.setattr(
+            auth_service, "revoke_all_user_sessions", fail_to_revoke_sessions
+        )
+
+        with pytest.raises(RuntimeError, match="session revocation failure"):
+            client.patch(
+                "/api/v1/users/me/password",
+                headers=auth_headers,
+                json={"old_password": "Test123456", "new_password": "NewPass123"},
+            )
+
+        old_password_login = client.post(
+            "/api/v1/login/access-token",
+            data={"username": "testuser", "password": "Test123456"},
+        )
+        new_password_login = client.post(
+            "/api/v1/login/access-token",
+            data={"username": "testuser", "password": "NewPass123"},
+        )
+        assert old_password_login.status_code == 200
+        assert new_password_login.status_code == 401
 
 
 # ===================================================================

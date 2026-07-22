@@ -37,7 +37,7 @@ async def create_refresh_session(
         expires_at=utc_now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
     )
     db.add(refresh_session)
-    await db.commit()
+    await db.flush()
     return raw_token
 
 
@@ -63,11 +63,11 @@ async def rotate_refresh_session(
     now = utc_now()
     if refresh_session.revoked_at is not None:
         await _revoke_family(db, refresh_session.family_id, now)
-        await db.commit()
+        await db.flush()
         raise UnauthorizedException(detail="刷新令牌已失效，请重新登录")
     if refresh_session.expires_at <= now or not refresh_session.user.is_active:
         await _revoke_family(db, refresh_session.family_id, now)
-        await db.commit()
+        await db.flush()
         raise UnauthorizedException(detail="刷新令牌已过期，请重新登录")
 
     user = refresh_session.user
@@ -86,7 +86,7 @@ async def rotate_refresh_session(
             expires_at=now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         )
     )
-    await db.commit()
+    await db.flush()
     return user, new_token
 
 
@@ -98,7 +98,7 @@ async def revoke_refresh_session(db: AsyncSession, raw_token: str) -> None:
     )
     if refresh_session:
         await _revoke_family(db, refresh_session.family_id, utc_now())
-        await db.commit()
+        await db.flush()
 
 
 async def revoke_all_user_sessions(db: AsyncSession, user_id: int) -> None:
@@ -110,7 +110,7 @@ async def revoke_all_user_sessions(db: AsyncSession, user_id: int) -> None:
         )
         .values(revoked_at=utc_now())
     )
-    await db.commit()
+    await db.flush()
 
 
 async def _revoke_family(

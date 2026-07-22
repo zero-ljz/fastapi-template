@@ -15,8 +15,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, Query
 
 from app.api.deps import AsyncSessionDep, CurrentUser
@@ -28,8 +26,8 @@ from app.schemas.user import (
     UserUpdate,
     UserUpdatePassword,
 )
-from app.services import user as user_service
 from app.services import auth as auth_service
+from app.services import user as user_service
 
 router = APIRouter(prefix="/users", tags=["用户管理"])
 
@@ -96,8 +94,8 @@ async def list_users(
     current_user: CurrentUser,
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
-    keyword: Optional[str] = Query(None, description="搜索关键字"),
-    is_active: Optional[bool] = Query(None, description="启用状态筛选"),
+    keyword: str | None = Query(None, description="搜索关键字"),
+    is_active: bool | None = Query(None, description="启用状态筛选"),
 ):
     """获取用户分页列表（仅管理员）"""
     if not current_user.is_superuser:

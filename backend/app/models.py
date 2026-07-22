@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import (
     BigInteger,
@@ -49,19 +48,19 @@ class User(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False, comment="登录邮箱"
     )
-    username: Mapped[Optional[str]] = mapped_column(
+    username: Mapped[str | None] = mapped_column(
         String(64), unique=True, nullable=True, comment="可选用户名"
     )
     hashed_password: Mapped[str] = mapped_column(
         String(255), nullable=False, comment="密码哈希"
     )
-    display_name: Mapped[Optional[str]] = mapped_column(
+    display_name: Mapped[str | None] = mapped_column(
         String(64), nullable=True, comment="显示名称"
     )
-    avatar_url: Mapped[Optional[str]] = mapped_column(
+    avatar_url: Mapped[str | None] = mapped_column(
         String(512), nullable=True, comment="头像 URL"
     )
-    email_verified_at: Mapped[Optional[datetime]] = mapped_column(
+    email_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True, comment="邮箱验证时间"
     )
     is_active: Mapped[bool] = mapped_column(
@@ -74,11 +73,11 @@ class User(TimestampMixin, Base):
         nullable=False,
         comment="是否超级管理员",
     )
-    last_login_at: Mapped[Optional[datetime]] = mapped_column(
+    last_login_at: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True, comment="最后登录时间"
     )
 
-    refresh_sessions: Mapped[list["RefreshSession"]] = relationship(
+    refresh_sessions: Mapped[list[RefreshSession]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -109,12 +108,12 @@ class RefreshSession(TimestampMixin, Base):
     client_type: Mapped[str] = mapped_column(
         String(32), default="unknown", server_default="unknown", nullable=False
     )
-    device_name: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
-    ip_address: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    user_agent: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    device_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
-    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="refresh_sessions")
 

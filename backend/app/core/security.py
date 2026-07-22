@@ -1,28 +1,27 @@
 # app/core/security.py
 
-from datetime import datetime, timedelta, timezone
 import hashlib
 import secrets
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
 import jwt
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
-from pwdlib.hashers.bcrypt import BcryptHasher
 
 from app.core.config import settings
 
-password_hash = PasswordHash((Argon2Hasher(), BcryptHasher()))
+password_hash = PasswordHash((Argon2Hasher(),))
 
 
 def utc_now() -> datetime:
     """返回适合 MySQL DATETIME 存储的无时区 UTC 时间。"""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(subject),
         "type": "access",

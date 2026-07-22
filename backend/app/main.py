@@ -13,7 +13,6 @@ from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger, setup_logging
 
-
 # ---------------------------------------------------------------------------
 # 日志初始化
 # ---------------------------------------------------------------------------

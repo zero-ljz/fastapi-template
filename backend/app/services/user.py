@@ -4,8 +4,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from anyio import to_thread
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -22,15 +20,15 @@ from app.models import User
 from app.schemas.user import UserCreate, UserUpdate, UserUpdatePassword
 
 
-async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
+async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
     return await db.get(User, user_id)
 
 
-async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User]:
+async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
     return await db.scalar(select(User).where(User.username == username))
 
 
-async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
+async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     return await db.scalar(select(User).where(User.email == email.lower()))
 
 
@@ -39,8 +37,8 @@ async def list_users(
     *,
     page: int = 1,
     page_size: int = 20,
-    keyword: Optional[str] = None,
-    is_active: Optional[bool] = None,
+    keyword: str | None = None,
+    is_active: bool | None = None,
 ) -> tuple[list[User], int]:
     stmt = select(User)
     if keyword:

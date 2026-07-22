@@ -5,12 +5,11 @@
 - 注册 / 登录 / 当前用户 / 修改密码 / 管理员操作
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
 from app.core.config import settings
-
 
 # ===================================================================
 # 注册
@@ -162,7 +161,7 @@ class TestCurrentUser:
         token = jwt.encode(
             {
                 "type": "access",
-                "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+                "exp": datetime.now(UTC) + timedelta(minutes=5),
             },
             settings.SECRET_KEY,
             algorithm=settings.ALGORITHM,
@@ -244,8 +243,8 @@ class TestAdminUsers:
 
     def test_admin_delete_user(self, client, admin_auth_headers, db_session):
         """管理员删除用户"""
-        from app.models import User
         from app.core.security import get_password_hash
+        from app.models import User
 
         # 先创建一个待删除的用户，不删除管理员自己
         target_user = User(

@@ -52,7 +52,7 @@
 
 ```bash
 cd backend
-python -m app.initial_data
+uv run python -m app.initial_data
 ```
 
 生产环境应在初始化完成后从运行环境移除初始管理员密码。

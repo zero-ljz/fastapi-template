@@ -10,12 +10,11 @@
 from app.core.exceptions import (
     AppException,
     BadRequestException,
-    UnauthorizedException,
+    ConflictException,
     ForbiddenException,
     NotFoundException,
-    ConflictException,
+    UnauthorizedException,
 )
-
 
 # ===================================================================
 # 异常类属性测试

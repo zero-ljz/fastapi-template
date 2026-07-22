@@ -4,7 +4,7 @@
 
 ## 已实现
 
-- Argon2 为首选密码哈希，并兼容校验旧 bcrypt 哈希；
+- 使用 Argon2 进行密码哈希；
 - 短期 JWT Access Token；
 - Refresh Token 只保存哈希；
 - Refresh Token 轮换和复用检测；

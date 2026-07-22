@@ -2,15 +2,11 @@
 
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
-
-from app.models import Base
 from app.core.config import settings
-
+from app.models import Base
 
 # 这是 Alembic 配置对象，它提供了对当前使用的 .ini 文件中值的访问权限。
 config = context.config

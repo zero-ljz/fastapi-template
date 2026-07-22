@@ -19,13 +19,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.core.logging import logger
-
 
 # ---------------------------------------------------------------------------
 # 异常类
@@ -41,10 +40,10 @@ class AppException(Exception):
 
     def __init__(
         self,
-        detail: Optional[str] = None,
+        detail: str | None = None,
         *,
-        error_code: Optional[str] = None,
-        headers: Optional[dict[str, str]] = None,
+        error_code: str | None = None,
+        headers: dict[str, str] | None = None,
         data: Any = None,
     ):
         if detail is not None:

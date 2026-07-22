@@ -7,17 +7,16 @@ FastAPI 依赖注入
 from collections.abc import AsyncGenerator, Generator
 from typing import Annotated
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-
-import jwt
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
-from app.core.db import AsyncSessionLocal, SessionLocal
 from app.core.config import settings
+from app.core.db import AsyncSessionLocal, SessionLocal
 from app.core.logging import logger
 from app.models import User
 from app.schemas.token import TokenPayload

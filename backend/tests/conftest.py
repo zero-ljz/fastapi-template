@@ -10,18 +10,16 @@
 import asyncio
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import BigInteger, create_engine, event
-from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker
 
-from fastapi.testclient import TestClient
-
-from app.models import Base, User
-from app.core.security import get_password_hash
 from app.api.deps import get_async_session
+from app.core.security import get_password_hash
 from app.main import app
-
+from app.models import Base, User
 
 # ---------------------------------------------------------------------------
 # SQLite 兼容性：BigInteger → INTEGER（使 autoincrement 正常工作）

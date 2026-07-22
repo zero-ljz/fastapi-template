@@ -40,7 +40,7 @@
 - Dependabot 每周检查 Python、npm 和 GitHub Actions 更新；
 - Security Workflow 每周运行 `pip-audit` 和 `npm audit`；
 - 依赖升级必须通过完整 CI；
-- Python 直接依赖在 `.in` 文件中约束，完整依赖树在 `.txt` 文件中精确锁定；
+- Python 直接依赖在 `pyproject.toml` 中约束，完整跨平台依赖树在 `uv.lock` 中精确锁定；
 - 不要在 Pull Request 工作流中使用生产密钥。
 
 ## 项目级责任

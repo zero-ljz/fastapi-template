@@ -7,7 +7,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, String, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    func,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -18,13 +27,13 @@ class Base(DeclarativeBase):
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
+        server_default=text("CURRENT_TIMESTAMP"),
         nullable=False,
         comment="创建时间",
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=func.now(),
+        server_default=text("CURRENT_TIMESTAMP"),
         onupdate=func.now(),
         nullable=False,
         comment="更新时间",

@@ -22,30 +22,52 @@ def upgrade() -> None:
     op.create_table(
         "user",
         sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
-        sa.Column("email", sa.String(length=255), nullable=False),
-        sa.Column("username", sa.String(length=64), nullable=True),
-        sa.Column("hashed_password", sa.String(length=255), nullable=False),
-        sa.Column("display_name", sa.String(length=64), nullable=True),
-        sa.Column("avatar_url", sa.String(length=512), nullable=True),
-        sa.Column("email_verified_at", sa.DateTime(), nullable=True),
+        sa.Column("email", sa.String(length=255), nullable=False, comment="登录邮箱"),
         sa.Column(
-            "is_active", sa.Boolean(), server_default=sa.text("1"), nullable=False
+            "username", sa.String(length=64), nullable=True, comment="可选用户名"
         ),
         sa.Column(
-            "is_superuser", sa.Boolean(), server_default=sa.text("0"), nullable=False
+            "hashed_password", sa.String(length=255), nullable=False, comment="密码哈希"
         ),
-        sa.Column("last_login_at", sa.DateTime(), nullable=True),
+        sa.Column(
+            "display_name", sa.String(length=64), nullable=True, comment="显示名称"
+        ),
+        sa.Column(
+            "avatar_url", sa.String(length=512), nullable=True, comment="头像 URL"
+        ),
+        sa.Column(
+            "email_verified_at", sa.DateTime(), nullable=True, comment="邮箱验证时间"
+        ),
+        sa.Column(
+            "is_active",
+            sa.Boolean(),
+            server_default=sa.text("1"),
+            nullable=False,
+            comment="是否启用",
+        ),
+        sa.Column(
+            "is_superuser",
+            sa.Boolean(),
+            server_default=sa.text("0"),
+            nullable=False,
+            comment="是否超级管理员",
+        ),
+        sa.Column(
+            "last_login_at", sa.DateTime(), nullable=True, comment="最后登录时间"
+        ),
         sa.Column(
             "created_at",
             sa.DateTime(),
             server_default=sa.text("CURRENT_TIMESTAMP"),
             nullable=False,
+            comment="创建时间",
         ),
         sa.Column(
             "updated_at",
             sa.DateTime(),
             server_default=sa.text("CURRENT_TIMESTAMP"),
             nullable=False,
+            comment="更新时间",
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("email"),
@@ -58,8 +80,15 @@ def upgrade() -> None:
         "refresh_session",
         sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
-        sa.Column("family_id", sa.String(length=36), nullable=False),
-        sa.Column("token_hash", sa.String(length=64), nullable=False),
+        sa.Column(
+            "family_id", sa.String(length=36), nullable=False, comment="轮换令牌族 ID"
+        ),
+        sa.Column(
+            "token_hash",
+            sa.String(length=64),
+            nullable=False,
+            comment="Refresh Token SHA-256",
+        ),
         sa.Column(
             "client_type",
             sa.String(length=32),
@@ -77,12 +106,14 @@ def upgrade() -> None:
             sa.DateTime(),
             server_default=sa.text("CURRENT_TIMESTAMP"),
             nullable=False,
+            comment="创建时间",
         ),
         sa.Column(
             "updated_at",
             sa.DateTime(),
             server_default=sa.text("CURRENT_TIMESTAMP"),
             nullable=False,
+            comment="更新时间",
         ),
         sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
@@ -116,10 +147,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_refresh_session_user_active", table_name="refresh_session")
-    op.drop_index("ix_refresh_session_user_id", table_name="refresh_session")
-    op.drop_index("ix_refresh_session_expires_at", table_name="refresh_session")
-    op.drop_index("ix_refresh_session_family_id", table_name="refresh_session")
     op.drop_table("refresh_session")
-    op.drop_index("ix_user_is_active", table_name="user")
     op.drop_table("user")

@@ -6,13 +6,16 @@
   },
   "scripts": {
     "dev": "concurrently --kill-others --names backend,frontend --prefix-colors blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
-    "dev:backend": "node scripts/backend-python.mjs -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload",
+    "dev:backend": "uv --directory backend run -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload",
     "dev:frontend": "npm --prefix frontend run dev",
-    "api:generate": "node scripts/backend-python.mjs scripts/export_openapi.py ../frontend/openapi.json && npm --prefix frontend run api:types",
+    "api:generate": "uv --directory backend run python scripts/export_openapi.py ../frontend/openapi.json && npm --prefix frontend run api:types",
     "test:frontend": "npm --prefix frontend test",
     "build:frontend": "npm --prefix frontend run build"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^10.0.3"
+  },
+  "overrides": {
+    "shell-quote": "^1.10.0"
   }
 }

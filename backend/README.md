@@ -15,10 +15,10 @@
 
 ```bash
 cp .env.example .env
-pip install -r requirements-dev.txt
-alembic upgrade head
-python -m app.initial_data  # 首次需要管理员时显式执行
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+uv sync --locked --dev
+uv run alembic upgrade head
+uv run python -m app.initial_data  # 首次需要管理员时显式执行
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 初始化脚本不会随应用启动自动执行。需要管理员时手动运行，它只会幂等创建 `.env` 中配置的首个超级管理员，不会写入演示账号或业务数据。
@@ -43,30 +43,33 @@ POST /api/v1/login/logout-all    退出全部设备
 ## 数据库迁移
 
 ```bash
-alembic revision --autogenerate -m "description"
-alembic upgrade head
-alembic downgrade -1
+uv run alembic revision --autogenerate -m "description"
+uv run alembic upgrade head
+uv run alembic downgrade -1
 ```
 
 当前首个迁移是新的精简基线。旧版模板没有正式迁移版本，如果已有旧版开发数据库，请备份需要的数据后重建数据库。
 
 ## 依赖管理
 
-`requirements.in` 和 `requirements-dev.in` 只维护直接依赖及兼容版本范围；自动生成的 `requirements.txt` 和 `requirements-dev.txt` 精确锁定完整依赖树，安装和部署始终使用 `.txt` 文件。
+`pyproject.toml` 维护 Python 3.12 约束、运行时依赖和开发依赖组；`uv.lock` 精确锁定完整的跨平台依赖树。二者都应提交，日常安装、CI 和 Docker 均使用锁文件。
 
-升级依赖后重新生成锁文件：
+常用依赖命令：
 
 ```bash
-python -m piptools compile --upgrade --strip-extras --index-url=https://pypi.org/simple requirements.in
-python -m piptools compile --upgrade --strip-extras --index-url=https://pypi.org/simple --output-file=requirements-dev.txt requirements-dev.in
+uv sync --locked --dev              # 按锁文件同步开发环境
+uv add fastapi                      # 添加或更新运行时依赖
+uv add --dev pytest                 # 添加或更新开发依赖
+uv lock --upgrade                   # 升级全部允许范围内的依赖
+uv lock --upgrade-package fastapi   # 只升级指定依赖
 ```
 
-两个锁文件应一起提交。开发锁通过 `-c requirements.txt` 与运行时锁保持同一版本。
+项目只支持 Python 3.12，`.python-version`、`requires-python` 和 CI 版本必须保持一致。修改依赖后提交更新后的 `pyproject.toml` 与 `uv.lock`。
 
 ## 测试与代码规范
 
 ```bash
-python -m pytest -q
-ruff check .
-ruff format --check .
+uv run pytest -q
+uv run ruff check .
+uv run ruff format --check .
 ```

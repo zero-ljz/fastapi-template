@@ -12,7 +12,7 @@ npm install
 npm run dev
 ```
 
-后端依赖准备完成后，也可以直接在仓库根目录运行 `npm run dev`，同时启动前后端。根目录脚本会优先使用 `backend/.venv`，不要求提前激活虚拟环境。
+后端执行过 `uv sync --locked --dev` 后，也可以直接在仓库根目录运行 `npm run dev`，同时启动前后端。根目录脚本通过 uv 使用 `backend/.venv`，不要求提前激活虚拟环境。
 
 ## 常用命令
 

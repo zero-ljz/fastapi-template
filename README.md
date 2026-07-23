@@ -103,6 +103,7 @@ cd backend
 uv run pytest -q
 uv run ruff check .
 uv run ruff format --check .
+uv run mypy
 
 cd ../frontend
 npm run lint

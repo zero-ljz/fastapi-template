@@ -56,17 +56,26 @@ async def rotate_refresh_session(
         .with_for_update()
     )
     if not refresh_session:
-        raise UnauthorizedException(detail="无效的 Refresh Token")
+        raise UnauthorizedException(
+            detail="刷新令牌无效或已失效，请重新登录",
+            error_code="INVALID_REFRESH_TOKEN",
+        )
 
     now = utc_now()
     if refresh_session.revoked_at is not None:
         await _revoke_family(db, refresh_session.family_id, now)
         await db.flush()
-        raise UnauthorizedException(detail="Refresh Token 已失效，请重新登录")
+        raise UnauthorizedException(
+            detail="刷新令牌无效或已失效，请重新登录",
+            error_code="INVALID_REFRESH_TOKEN",
+        )
     if refresh_session.expires_at <= now or not refresh_session.user.is_active:
         await _revoke_family(db, refresh_session.family_id, now)
         await db.flush()
-        raise UnauthorizedException(detail="Refresh Token 已过期，请重新登录")
+        raise UnauthorizedException(
+            detail="刷新令牌无效或已失效，请重新登录",
+            error_code="INVALID_REFRESH_TOKEN",
+        )
 
     user = refresh_session.user
     refresh_session.revoked_at = now

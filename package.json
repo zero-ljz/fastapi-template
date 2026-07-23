@@ -8,9 +8,7 @@
     "dev": "concurrently --kill-others --names backend,frontend --prefix-colors blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
     "dev:backend": "uv --directory backend run -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload",
     "dev:frontend": "npm --prefix frontend run dev",
-    "api:generate": "uv --directory backend run python scripts/export_openapi.py ../frontend/openapi.json && npm --prefix frontend run api:types",
-    "test:frontend": "npm --prefix frontend test",
-    "build:frontend": "npm --prefix frontend run build"
+    "api:generate": "uv --directory backend run python -m scripts.export_openapi ../frontend/openapi.json && npm --prefix frontend run api:types"
   },
   "devDependencies": {
     "concurrently": "^10.0.3"

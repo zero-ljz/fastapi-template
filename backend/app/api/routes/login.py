@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.exceptions import UnauthorizedException
 from app.core.logging import logger
 from app.core.unit_of_work import unit_of_work
+from app.schemas.common import Message
 from app.schemas.token import RefreshTokenRequest, RevokeTokenRequest, Token
 from app.services import auth as auth_service
 from app.services import user as user_service
@@ -33,7 +34,11 @@ def _create_access_token(user_id: int) -> str:
     )
 
 
-@router.post("/login/access-token", response_model=Token, summary="登录获取令牌")
+@router.post(
+    "/login/access-token",
+    response_model=Token,
+    summary="登录获取令牌",
+)
 async def login_access_token(
     *,
     request: Request,
@@ -41,7 +46,7 @@ async def login_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     x_client_type: Annotated[str | None, Header(max_length=32)] = None,
     x_device_name: Annotated[str | None, Header(max_length=128)] = None,
-):
+) -> Token:
     async with unit_of_work(db):
         user = await user_service.authenticate(
             db, form_data.username, form_data.password
@@ -67,10 +72,14 @@ async def login_access_token(
     )
 
 
-@router.post("/login/refresh", response_model=Token, summary="刷新 Access Token")
+@router.post(
+    "/login/refresh",
+    response_model=Token,
+    summary="刷新 Access Token",
+)
 async def refresh_access_token(
     *, request: Request, db: AsyncSessionDep, token_in: RefreshTokenRequest
-):
+) -> Token:
     client_ip, user_agent = _request_metadata(request)
     async with unit_of_work(db, commit_on=(UnauthorizedException,)):
         user, refresh_token = await auth_service.rotate_refresh_session(
@@ -89,14 +98,14 @@ async def refresh_access_token(
 
 
 @router.post("/login/logout", summary="退出当前设备")
-async def logout(*, db: AsyncSessionDep, token_in: RevokeTokenRequest):
+async def logout(*, db: AsyncSessionDep, token_in: RevokeTokenRequest) -> Message:
     async with unit_of_work(db):
         await auth_service.revoke_refresh_session(db, token_in.refresh_token)
-    return {"message": "已退出登录"}
+    return Message(message="已退出登录")
 
 
 @router.post("/login/logout-all", summary="退出全部设备")
-async def logout_all(*, db: AsyncSessionDep, current_user: CurrentUser):
+async def logout_all(*, db: AsyncSessionDep, current_user: CurrentUser) -> Message:
     async with unit_of_work(db):
         await auth_service.revoke_all_user_sessions(db, current_user.id)
-    return {"message": "已退出全部设备"}
+    return Message(message="已退出全部设备")

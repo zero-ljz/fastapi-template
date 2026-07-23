@@ -2,10 +2,13 @@
 
 import logging
 import sys
+from types import FrameType
 
-from loguru import logger
+from loguru import logger as _logger
 
 from app.core.config import settings
+
+logger = _logger
 
 
 # 将标准库日志转发到 Loguru
@@ -14,14 +17,16 @@ class InterceptHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         # 获取对应的 Loguru 日志级别
+        level: str | int
         try:
             level = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
 
         # 定位真实调用方
-        frame, depth = logging.currentframe(), 2
-        while frame and frame.f_code.co_filename == logging.__file__:
+        frame: FrameType | None = logging.currentframe()
+        depth = 2
+        while frame is not None and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
             depth += 1
 
@@ -34,7 +39,7 @@ def setup_logging() -> None:
     """初始化标准输出日志；生产环境输出结构化 JSON。"""
 
     log_level = settings.LOG_LEVEL.upper()
-    is_production = settings.ENVIRONMENT.lower() == "production"
+    is_production = settings.ENVIRONMENT == "production"
 
     logger.remove()
     logger.configure(extra={"request_id": "-"})

@@ -15,6 +15,7 @@ async def request_context_middleware(
 ) -> Response:
     """记录请求标识、状态码与耗时，不记录可能包含敏感信息的查询参数。"""
     request_id = uuid4().hex
+    request.state.request_id = request_id
     started_at = perf_counter()
 
     with logger.contextualize(request_id=request_id):

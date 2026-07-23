@@ -1,20 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import { z } from 'zod'
 
 import { api } from '../../api/client.ts'
 import { getErrorMessage } from '../../api/errors.ts'
-
-const healthSchema = z.object({
-  status: z.string(),
-  version: z.string(),
-})
 
 export function HomePage() {
   const health = useQuery({
     queryKey: ['health'],
     queryFn: async () => {
       const { data } = await api.GET('/api/v1/health')
-      return healthSchema.parse(data)
+      return data
     },
   })
 

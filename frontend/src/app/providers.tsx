@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { RouterProvider } from 'react-router'
+import { RouterProvider } from 'react-router/dom'
 
 import { AuthProvider } from '../auth/auth-provider.tsx'
 import { queryClient } from './query-client.ts'

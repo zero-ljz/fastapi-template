@@ -1,6 +1,6 @@
 # 前端
 
-基于 React、TypeScript 和 Vite 的独立 Web 客户端。模板内置 React Router、TanStack Query、React Hook Form、Zod、OpenAPI 类型客户端、ESLint、Prettier、Vitest、Testing Library 和 MSW。
+基于 React、TypeScript 和 Vite 的独立 Web 客户端。模板内置 React Router、根路由错误边界、TanStack Query、React Hook Form、Zod、OpenAPI 类型客户端、严格 TypeScript 检查、ESLint、Prettier、Vitest、Testing Library 和 MSW。
 
 开发和构建使用 Node.js 24+。
 

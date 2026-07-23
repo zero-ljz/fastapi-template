@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator, Generator
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.db import AsyncSessionLocal, SessionLocal
+from app.core.exceptions import ForbiddenException, UnauthorizedException
 from app.core.logging import logger
 from app.models import User
 from app.schemas.token import TokenPayload
@@ -55,26 +56,27 @@ async def get_current_user(db: AsyncSessionDep, token: TokenDep) -> User:
         token_data = TokenPayload.model_validate(payload)
         if token_data.type != "access":
             raise InvalidTokenError("令牌类型错误")
+        if token_data.sub is None:
+            raise InvalidTokenError("令牌缺少用户标识")
+        user_id = int(token_data.sub)
     except (InvalidTokenError, ValidationError, ValueError, TypeError) as e:
         logger.warning("Token 验证失败: {}", str(e))
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+        raise UnauthorizedException(
             detail="无法验证凭据",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+            error_code="INVALID_ACCESS_TOKEN",
+        ) from e
 
-    if token_data.sub is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="无效的 Token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    user = await db.get(User, int(token_data.sub))
+    user = await db.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
+        raise UnauthorizedException(
+            detail="无法验证凭据",
+            error_code="INVALID_ACCESS_TOKEN",
+        )
     if not user.is_active:
-        raise HTTPException(status_code=400, detail="用户已被禁用")
+        raise ForbiddenException(
+            detail="用户已被禁用",
+            error_code="USER_DISABLED",
+        )
     return user
 
 
@@ -84,5 +86,5 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 async def get_current_active_superuser(current_user: CurrentUser) -> User:
     """要求当前用户是超级管理员。"""
     if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="权限不足，需要管理员权限")
+        raise ForbiddenException(detail="权限不足，需要管理员权限")
     return current_user

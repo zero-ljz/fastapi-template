@@ -50,6 +50,7 @@ class TestRegister:
         payload["email"] = "dup2@example.com"
         resp2 = client.post("/api/v1/users/register", json=payload)
         assert resp2.status_code == 409
+        assert resp2.json()["code"] == "USERNAME_ALREADY_EXISTS"
 
     def test_register_without_username(self, client):
         response = client.post(
@@ -77,6 +78,7 @@ class TestRegister:
         }
         resp2 = client.post("/api/v1/users/register", json=payload2)
         assert resp2.status_code == 409
+        assert resp2.json()["code"] == "EMAIL_ALREADY_EXISTS"
 
 
 # 登录
@@ -151,6 +153,8 @@ class TestCurrentUser:
         """未携带令牌应返回 401。"""
         response = client.get("/api/v1/users/me")
         assert response.status_code == 401
+        assert response.json()["message"] == "未认证或认证已失效"
+        assert response.headers["WWW-Authenticate"] == "Bearer"
 
     def test_get_current_user_rejects_token_without_subject(self, client):
         token = jwt.encode(
@@ -165,7 +169,39 @@ class TestCurrentUser:
             "/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
         )
         assert response.status_code == 401
-        assert response.json()["detail"] == "无效的 Token"
+        assert response.json()["code"] == "INVALID_ACCESS_TOKEN"
+        assert response.headers["WWW-Authenticate"] == "Bearer"
+
+    def test_get_current_user_rejects_non_numeric_subject(self, client):
+        """非数字用户标识应返回 401，而不是触发服务器错误。"""
+        token = jwt.encode(
+            {
+                "sub": "not-a-user-id",
+                "type": "access",
+                "exp": datetime.now(UTC) + timedelta(minutes=5),
+            },
+            settings.SECRET_KEY,
+            algorithm=settings.ALGORITHM,
+        )
+
+        response = client.get(
+            "/api/v1/users/me", headers={"Authorization": f"Bearer {token}"}
+        )
+
+        assert response.status_code == 401
+        assert response.json()["code"] == "INVALID_ACCESS_TOKEN"
+
+    def test_disabled_authenticated_user_is_forbidden(
+        self, client, auth_headers, test_user, db_session
+    ):
+        """已认证但被停用的用户应返回 403。"""
+        test_user.is_active = False
+        db_session.commit()
+
+        response = client.get("/api/v1/users/me", headers=auth_headers)
+
+        assert response.status_code == 403
+        assert response.json()["code"] == "USER_DISABLED"
 
     def test_update_current_user(self, client, auth_headers):
         """更新当前用户昵称。"""
@@ -177,6 +213,17 @@ class TestCurrentUser:
         assert response.status_code == 200
         data = response.json()
         assert data["display_name"] == "Updated Name"
+
+    def test_update_current_user_rejects_empty_email(self, client, auth_headers):
+        """显式清空邮箱应由请求模型返回 422。"""
+        response = client.patch(
+            "/api/v1/users/me",
+            headers=auth_headers,
+            json={"email": None},
+        )
+
+        assert response.status_code == 422
+        assert response.json()["code"] == "VALIDATION_ERROR"
 
 
 # 修改密码
@@ -202,6 +249,7 @@ class TestPassword:
             json={"old_password": "WrongOldPwd", "new_password": "NewPass123"},
         )
         assert response.status_code == 400
+        assert response.json()["code"] == "BAD_REQUEST"
 
     def test_password_change_rolls_back_when_session_revocation_fails(
         self, client, auth_headers, monkeypatch
@@ -252,6 +300,7 @@ class TestAdminUsers:
         """普通用户获取用户列表应返回 403。"""
         response = client.get("/api/v1/users", headers=auth_headers)
         assert response.status_code == 403
+        assert response.json()["code"] == "FORBIDDEN"
 
     def test_admin_get_user(self, client, admin_auth_headers, test_user):
         """管理员按编号查询用户。"""
@@ -308,12 +357,14 @@ class TestRefreshSession:
             json={"refresh_token": old_refresh_token},
         )
         assert reused.status_code == 401
+        assert reused.json()["code"] == "INVALID_REFRESH_TOKEN"
 
         new_token_after_reuse = client.post(
             "/api/v1/login/refresh",
             json={"refresh_token": refreshed.json()["refresh_token"]},
         )
         assert new_token_after_reuse.status_code == 401
+        assert new_token_after_reuse.json()["code"] == "INVALID_REFRESH_TOKEN"
 
     def test_logout_revokes_refresh_token(self, client, test_user):
         login = client.post(

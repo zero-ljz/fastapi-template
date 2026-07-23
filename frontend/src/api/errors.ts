@@ -1,8 +1,7 @@
 type ErrorPayload = {
   code?: unknown
   message?: unknown
-  detail?: unknown
-  data?: unknown
+  details?: unknown
 }
 
 function isErrorPayload(value: unknown): value is ErrorPayload {
@@ -36,20 +35,17 @@ export class ApiError extends Error {
       .json()
       .catch(() => undefined)
     const body = isErrorPayload(payload) ? payload : undefined
-    const detail = body?.detail
     const message =
       typeof body?.message === 'string'
         ? body.message
-        : typeof detail === 'string'
-          ? detail
-          : response.statusText || '请求失败'
+        : response.statusText || '请求失败'
 
     return new ApiError({
       status: response.status,
       code:
         typeof body?.code === 'string' ? body.code : `HTTP_${response.status}`,
       message,
-      details: body?.data ?? (Array.isArray(detail) ? detail : undefined),
+      details: body?.details,
       requestId: response.headers.get('X-Request-ID') ?? undefined,
     })
   }

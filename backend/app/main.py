@@ -1,16 +1,18 @@
 """创建并配置 FastAPI 应用。"""
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.main import api_router
+from app.api.main import COMMON_ERROR_RESPONSES, api_router
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger, setup_logging
 from app.middleware.request_context import request_context_middleware
+from app.schemas.common import HealthResponse
 
 # 初始化日志
 setup_logging()
@@ -19,7 +21,7 @@ setup_logging()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info(
         "应用启动 | {} v{} | 环境: {}",
         settings.PROJECT_NAME,
@@ -37,6 +39,7 @@ app = FastAPI(
     version=settings.VERSION,
     debug=settings.DEBUG,
     lifespan=lifespan,
+    responses=COMMON_ERROR_RESPONSES,
 )
 
 # 配置跨域资源共享
@@ -61,9 +64,9 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # 健康检查
 @app.get(f"{settings.API_V1_STR}/health", tags=["系统"], summary="健康检查")
-async def health_check():
+async def health_check() -> HealthResponse:
     """返回应用健康状态。"""
-    return {"status": "ok", "version": settings.VERSION}
+    return HealthResponse(status="ok", version=settings.VERSION)
 
 
 # 挂载静态文件目录

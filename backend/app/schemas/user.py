@@ -32,6 +32,13 @@ class UserUpdate(BaseModel):
     email: EmailStr | None = None
     avatar_url: str | None = Field(default=None, max_length=512)
 
+    @field_validator("email")
+    @classmethod
+    def email_must_not_be_empty(cls, value: EmailStr | None) -> EmailStr:
+        if value is None:
+            raise ValueError("邮箱不能为空")
+        return value
+
 
 class UserUpdatePassword(BaseModel):
     old_password: str = Field(min_length=8, max_length=128)

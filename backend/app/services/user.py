@@ -21,11 +21,13 @@ async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
 
 
 async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
-    return await db.scalar(select(User).where(User.username == username))
+    users = await db.scalars(select(User).where(User.username == username))
+    return users.one_or_none()
 
 
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
-    return await db.scalar(select(User).where(User.email == email.lower()))
+    users = await db.scalars(select(User).where(User.email == email.lower()))
+    return users.one_or_none()
 
 
 async def list_users(
@@ -57,9 +59,15 @@ async def list_users(
 
 async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
     if user_in.username and await get_user_by_username(db, user_in.username):
-        raise ConflictException(detail="用户名已存在")
+        raise ConflictException(
+            detail="用户名已存在",
+            error_code="USERNAME_ALREADY_EXISTS",
+        )
     if await get_user_by_email(db, str(user_in.email)):
-        raise ConflictException(detail="邮箱已被注册")
+        raise ConflictException(
+            detail="邮箱已被注册",
+            error_code="EMAIL_ALREADY_EXISTS",
+        )
 
     hashed_password = await to_thread.run_sync(get_password_hash, user_in.password)
     user = User(
@@ -81,12 +89,13 @@ async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
 async def update_user(db: AsyncSession, user: User, user_in: UserUpdate) -> User:
     update_data = user_in.model_dump(exclude_unset=True)
     if "email" in update_data:
-        if not update_data["email"]:
-            raise BadRequestException(detail="邮箱不能为空")
         email = str(update_data["email"]).lower()
         existing = await get_user_by_email(db, email)
         if existing and existing.id != user.id:
-            raise ConflictException(detail="邮箱已被注册")
+            raise ConflictException(
+                detail="邮箱已被注册",
+                error_code="EMAIL_ALREADY_EXISTS",
+            )
         update_data["email"] = email
 
     for field, value in update_data.items():
@@ -127,15 +136,24 @@ async def authenticate(db: AsyncSession, identifier: str, password: str) -> User
         )
     )
     if not user:
-        raise UnauthorizedException(detail="用户名、邮箱或密码错误")
+        raise UnauthorizedException(
+            detail="用户名、邮箱或密码错误",
+            error_code="INVALID_CREDENTIALS",
+        )
 
     valid, updated_hash = await to_thread.run_sync(
         verify_password, password, user.hashed_password
     )
     if not valid:
-        raise UnauthorizedException(detail="用户名、邮箱或密码错误")
+        raise UnauthorizedException(
+            detail="用户名、邮箱或密码错误",
+            error_code="INVALID_CREDENTIALS",
+        )
     if not user.is_active:
-        raise UnauthorizedException(detail="用户已被禁用")
+        raise UnauthorizedException(
+            detail="用户已被禁用",
+            error_code="USER_DISABLED",
+        )
     if updated_hash:
         user.hashed_password = updated_hash
         await db.flush()

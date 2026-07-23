@@ -1,76 +1,135 @@
-"""
-异常体系测试。
+"""验证统一错误响应的关键行为。"""
 
-- 验证各异常类的状态码。
-- 验证自定义详情与错误代码。
-- 验证全局异常处理器的响应格式。
-"""
+import pytest
+from fastapi import FastAPI, HTTPException
+from fastapi.testclient import TestClient
+from pydantic import BaseModel
 
 from app.core.exceptions import (
-    AppException,
     BadRequestException,
     ConflictException,
     ForbiddenException,
     NotFoundException,
     UnauthorizedException,
+    register_exception_handlers,
 )
-
-# 异常类属性测试
-
-
-class TestExceptionClasses:
-    """验证异常类基础属性。"""
-
-    def test_bad_request_exception(self):
-        """错误请求异常的状态码应为 400。"""
-        exc = BadRequestException()
-        assert exc.status_code == 400
-
-    def test_unauthorized_exception(self):
-        """未认证异常的状态码应为 401。"""
-        exc = UnauthorizedException()
-        assert exc.status_code == 401
-
-    def test_forbidden_exception(self):
-        """禁止访问异常的状态码应为 403。"""
-        exc = ForbiddenException()
-        assert exc.status_code == 403
-
-    def test_not_found_exception(self):
-        """资源不存在异常的状态码应为 404。"""
-        exc = NotFoundException()
-        assert exc.status_code == 404
-
-    def test_conflict_exception(self):
-        """资源冲突异常的状态码应为 409。"""
-        exc = ConflictException()
-        assert exc.status_code == 409
-
-    def test_custom_detail(self):
-        """支持自定义详情。"""
-        exc = AppException(detail="自定义错误")
-        assert exc.detail == "自定义错误"
-
-    def test_custom_error_code(self):
-        """支持自定义错误代码。"""
-        exc = AppException(error_code="CUSTOM_CODE")
-        assert exc.error_code == "CUSTOM_CODE"
+from app.middleware.request_context import request_context_middleware
 
 
-# 全局异常处理器响应格式测试
+class ValidationPayload(BaseModel):
+    quantity: int
 
 
-class TestExceptionResponseFormat:
-    """通过实际请求验证异常处理器返回的数据格式。"""
+@pytest.fixture
+def exception_client():
+    test_app = FastAPI()
+    register_exception_handlers(test_app)
+    test_app.middleware("http")(request_context_middleware)
 
-    def test_exception_response_format(self, client, admin_auth_headers):
-        """
-        请求不存在的用户编号，触发资源不存在异常，
-        验证响应为 404 且包含错误代码和消息字段。
-        """
-        response = client.get("/api/v1/users/99999", headers=admin_auth_headers)
-        assert response.status_code == 404
-        data = response.json()
-        assert "code" in data
-        assert "message" in data
-        assert data["code"] == "NOT_FOUND"
+    @test_app.get("/application")
+    async def raise_application_exception():
+        raise ConflictException(
+            detail="名称已存在",
+            error_code="NAME_ALREADY_EXISTS",
+            details={"field": "name"},
+        )
+
+    @test_app.get("/unauthorized")
+    async def raise_unauthorized_exception():
+        raise UnauthorizedException(error_code="INVALID_ACCESS_TOKEN")
+
+    @test_app.get("/framework")
+    async def raise_framework_exception():
+        raise HTTPException(status_code=418, detail="暂时无法泡茶")
+
+    @test_app.post("/validation")
+    async def validate_payload(payload: ValidationPayload):
+        return payload
+
+    @test_app.get("/unhandled")
+    async def raise_unhandled_exception():
+        raise RuntimeError("不应泄露的内部信息")
+
+    with TestClient(test_app, raise_server_exceptions=False) as client:
+        yield client
+
+
+@pytest.mark.parametrize(
+    ("exception", "status_code"),
+    [
+        (BadRequestException(), 400),
+        (UnauthorizedException(), 401),
+        (ForbiddenException(), 403),
+        (NotFoundException(), 404),
+        (ConflictException(), 409),
+    ],
+)
+def test_exception_status_codes(exception, status_code):
+    assert exception.status_code == status_code
+
+
+def test_application_exception_uses_unified_contract(exception_client):
+    response = exception_client.get("/application")
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "code": "NAME_ALREADY_EXISTS",
+        "message": "名称已存在",
+        "details": {"field": "name"},
+    }
+    assert response.headers["X-Request-ID"]
+
+
+def test_unauthorized_exception_keeps_authentication_header(exception_client):
+    response = exception_client.get("/unauthorized")
+
+    assert response.status_code == 401
+    assert response.headers["WWW-Authenticate"] == "Bearer"
+    assert response.json()["code"] == "INVALID_ACCESS_TOKEN"
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "status_code", "code", "message"),
+    [
+        ("get", "/framework", 418, "HTTP_418", "暂时无法泡茶"),
+        ("get", "/missing", 404, "NOT_FOUND", "资源不存在"),
+        ("post", "/application", 405, "METHOD_NOT_ALLOWED", "请求方法不受支持"),
+    ],
+)
+def test_framework_http_exceptions_use_unified_contract(
+    exception_client, method, path, status_code, code, message
+):
+    response = exception_client.request(method, path)
+
+    assert response.status_code == status_code
+    assert response.json()["code"] == code
+    assert response.json()["message"] == message
+    assert response.headers["X-Request-ID"]
+
+
+def test_request_validation_error_has_safe_details(exception_client):
+    response = exception_client.post("/validation", json={"quantity": "many"})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["details"] == [
+        {
+            "location": ["body", "quantity"],
+            "message": "Input should be a valid integer, unable to parse string as an integer",
+            "code": "int_parsing",
+        }
+    ]
+
+
+def test_unhandled_exception_is_safe_and_traceable(exception_client):
+    response = exception_client.get("/unhandled")
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "code": "INTERNAL_ERROR",
+        "message": "服务器内部错误",
+        "details": None,
+    }
+    assert response.headers["X-Request-ID"]
+    assert "不应泄露" not in response.text

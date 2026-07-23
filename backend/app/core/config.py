@@ -1,10 +1,9 @@
 """定义应用配置。"""
 
-import json
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,13 +17,13 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "FastAPI Template"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: Literal["development", "testing", "production"] = "development"
     DEBUG: bool = True
 
     SECRET_KEY: str = "change-me-to-a-random-secret-key-32chars-min"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    ALGORITHM: Literal["HS256"] = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, gt=0)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=30, gt=0)
 
     BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost",
@@ -34,9 +33,9 @@ class Settings(BaseSettings):
     ]
 
     # 数据库
-    DB_DRIVER: str = "mysql"
+    DB_DRIVER: str = "mysql+mysqldb"
     DB_HOST: str = "127.0.0.1"
-    DB_PORT: str = "3306"
+    DB_PORT: int = Field(default=3306, ge=1, le=65535)
     DB_USER: str = "root"
     DB_PASSWORD: str = ""
     DB_NAME: str = "db1"
@@ -49,19 +48,6 @@ class Settings(BaseSettings):
     # 日志
     LOG_LEVEL: str = "INFO"
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, value: str | list[str]) -> list[str]:
-        if isinstance(value, list):
-            return value
-        if not value:
-            return []
-
-        value = value.strip()
-        if value.startswith("["):
-            return json.loads(value)
-        return [origin.strip() for origin in value.split(",") if origin.strip()]
-
     @field_validator("SECRET_KEY")
     @classmethod
     def validate_secret_key(cls, value: str) -> str:
@@ -71,7 +57,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_settings(self) -> Self:
-        if self.ENVIRONMENT.lower() == "production":
+        if self.ENVIRONMENT == "production":
             if self.DEBUG:
                 raise ValueError("DEBUG must be false in production")
             if self.SECRET_KEY == "change-me-to-a-random-secret-key-32chars-min":

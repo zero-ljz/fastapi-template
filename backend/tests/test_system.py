@@ -16,6 +16,22 @@ def test_backend_does_not_serve_frontend_or_traverse_paths(client):
 
     assert root_response.status_code == 404
     assert traversal_response.status_code == 404
+    assert root_response.json()["code"] == "NOT_FOUND"
+    assert root_response.headers["X-Request-ID"]
+
+
+def test_openapi_documents_unified_error_contract(client):
+    schema = client.app.openapi()
+    responses = schema["paths"]["/api/v1/users/register"]["post"]["responses"]
+
+    assert responses["409"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ErrorResponse"
+    }
+    assert responses["422"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ValidationErrorResponse"
+    }
+    assert "X-Request-ID" in responses["422"]["headers"]
+    assert "HTTPValidationError" not in schema["components"]["schemas"]
 
 
 def test_local_vite_origin_passes_cors_preflight(client):

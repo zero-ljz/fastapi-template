@@ -1,4 +1,4 @@
-# app/main.py
+"""创建并配置 FastAPI 应用。"""
 
 from contextlib import asynccontextmanager
 
@@ -12,15 +12,10 @@ from app.core.exceptions import register_exception_handlers
 from app.core.logging import logger, setup_logging
 from app.middleware.request_context import request_context_middleware
 
-# ---------------------------------------------------------------------------
-# 日志初始化
-# ---------------------------------------------------------------------------
+# 初始化日志
 setup_logging()
 
-
-# ---------------------------------------------------------------------------
-# 生命周期
-# ---------------------------------------------------------------------------
+# 管理应用生命周期
 
 
 @asynccontextmanager
@@ -35,9 +30,7 @@ async def lifespan(app: FastAPI):
     logger.info("应用关闭")
 
 
-# ---------------------------------------------------------------------------
-# FastAPI 应用
-# ---------------------------------------------------------------------------
+# 创建应用实例
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -46,7 +39,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS
+# 配置跨域资源共享
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -56,35 +49,24 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
 )
 
-# 注册全局异常处理器
+# 注册异常处理器
 register_exception_handlers(app)
 
-# ---------------------------------------------------------------------------
-# 请求日志中间件
-# ---------------------------------------------------------------------------
-
-
+# 注册请求日志中间件
 app.middleware("http")(request_context_middleware)
 
-
-# ---------------------------------------------------------------------------
-# API 路由
-# ---------------------------------------------------------------------------
-
+# 注册接口路由
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 # 健康检查
-@app.get(f"{settings.API_V1_STR}/health", tags=["系统"])
+@app.get(f"{settings.API_V1_STR}/health", tags=["系统"], summary="健康检查")
 async def health_check():
-    """健康检查接口"""
+    """返回应用健康状态。"""
     return {"status": "ok", "version": settings.VERSION}
 
 
-# ---------------------------------------------------------------------------
-# 静态文件
-# ---------------------------------------------------------------------------
-
+# 挂载静态文件目录
 app.mount(
     "/static", StaticFiles(directory=settings.ROOT_PATH / "static"), name="static"
 )

@@ -1,5 +1,3 @@
-# app/initial_data.py
-
 """幂等创建首个超级管理员，不生成任何演示业务数据。"""
 
 import sys

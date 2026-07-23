@@ -1,8 +1,4 @@
-# app/api/deps.py
-
-"""
-FastAPI 依赖注入
-"""
+"""定义 FastAPI 依赖项。"""
 
 from collections.abc import AsyncGenerator, Generator
 from typing import Annotated
@@ -26,9 +22,7 @@ reusable_oauth2 = OAuth2PasswordBearer(
 )
 
 
-# ---------------------------------------------------------------------------
-# 数据库会话
-# ---------------------------------------------------------------------------
+# 数据库会话依赖
 
 
 def get_session() -> Generator[Session, None, None]:
@@ -46,13 +40,11 @@ AsyncSessionDep = Annotated[AsyncSession, Depends(get_async_session)]
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
 
-# ---------------------------------------------------------------------------
-# 当前用户
-# ---------------------------------------------------------------------------
+# 当前用户依赖
 
 
 async def get_current_user(db: AsyncSessionDep, token: TokenDep) -> User:
-    """从 JWT Token 解析并返回当前用户"""
+    """解析 JWT 令牌并返回当前用户。"""
     try:
         payload = jwt.decode(
             token,
@@ -60,7 +52,7 @@ async def get_current_user(db: AsyncSessionDep, token: TokenDep) -> User:
             algorithms=[settings.ALGORITHM],
             options={"require": ["exp", "type"]},
         )
-        token_data = TokenPayload(**payload)
+        token_data = TokenPayload.model_validate(payload)
         if token_data.type != "access":
             raise InvalidTokenError("令牌类型错误")
     except (InvalidTokenError, ValidationError, ValueError, TypeError) as e:
@@ -90,7 +82,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 async def get_current_active_superuser(current_user: CurrentUser) -> User:
-    """要求当前用户是超级管理员"""
+    """要求当前用户是超级管理员。"""
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="权限不足，需要管理员权限")
     return current_user

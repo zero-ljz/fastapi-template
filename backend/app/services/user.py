@@ -1,8 +1,4 @@
-# app/services/user.py
-
 """基于 AsyncSession 的用户查询、注册、更新与认证逻辑。"""
-
-from __future__ import annotations
 
 from anyio import to_thread
 from sqlalchemy import func, or_, select

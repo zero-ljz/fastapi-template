@@ -1,10 +1,8 @@
-# alembic/versions/20260711_0001_core_auth.py
+"""创建用户表与 Refresh Token 会话表。
 
-"""create core user and refresh session tables
-
-Revision ID: 20260711_0001
-Revises:
-Create Date: 2026-07-11
+修订版本：20260711_0001
+前置版本：无
+创建日期：2026-07-11
 """
 
 from collections.abc import Sequence
@@ -118,7 +116,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("token_hash"),
-        comment="刷新令牌会话表",
+        comment="Refresh Token 会话表",
     )
     op.create_index(
         "ix_refresh_session_family_id",

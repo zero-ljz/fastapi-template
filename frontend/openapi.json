@@ -87,7 +87,7 @@
         "tags": [
           "认证"
         ],
-        "summary": "刷新访问令牌",
+        "summary": "刷新 Access Token",
         "operationId": "refresh_access_token_api_v1_login_refresh_post",
         "requestBody": {
           "content": {
@@ -192,7 +192,7 @@
           "用户管理"
         ],
         "summary": "用户注册",
-        "description": "注册新用户",
+        "description": "注册新用户。",
         "operationId": "register_api_v1_users_register_post",
         "requestBody": {
           "content": {
@@ -234,7 +234,7 @@
           "用户管理"
         ],
         "summary": "获取当前用户信息",
-        "description": "获取当前登录用户的信息",
+        "description": "获取当前登录用户的信息。",
         "operationId": "get_current_user_info_api_v1_users_me_get",
         "responses": {
           "200": {
@@ -259,7 +259,7 @@
           "用户管理"
         ],
         "summary": "更新个人信息",
-        "description": "更新当前登录用户的个人信息",
+        "description": "更新当前登录用户的个人信息。",
         "operationId": "update_current_user_api_v1_users_me_patch",
         "requestBody": {
           "content": {
@@ -306,7 +306,7 @@
           "用户管理"
         ],
         "summary": "修改密码",
-        "description": "修改当前登录用户的密码",
+        "description": "修改当前登录用户的密码。",
         "operationId": "update_current_user_password_api_v1_users_me_password_patch",
         "requestBody": {
           "content": {
@@ -351,7 +351,7 @@
           "用户管理"
         ],
         "summary": "用户列表（管理员）",
-        "description": "获取用户分页列表（仅管理员）",
+        "description": "获取用户分页列表，仅限管理员。",
         "operationId": "list_users_api_v1_users_get",
         "security": [
           {
@@ -453,7 +453,7 @@
           "用户管理"
         ],
         "summary": "查询用户（管理员）",
-        "description": "按 ID 查询用户（仅管理员）",
+        "description": "按编号查询用户，仅限管理员。",
         "operationId": "get_user_api_v1_users__user_id__get",
         "security": [
           {
@@ -499,7 +499,7 @@
           "用户管理"
         ],
         "summary": "删除用户（管理员）",
-        "description": "删除用户（仅管理员）",
+        "description": "删除用户，仅限管理员。",
         "operationId": "delete_user_api_v1_users__user_id__delete",
         "security": [
           {
@@ -544,8 +544,8 @@
         "tags": [
           "系统"
         ],
-        "summary": "Health Check",
-        "description": "健康检查接口",
+        "summary": "健康检查",
+        "description": "返回应用健康状态。",
         "operationId": "health_check_api_v1_health_get",
         "responses": {
           "200": {

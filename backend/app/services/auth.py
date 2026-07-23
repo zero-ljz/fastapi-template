@@ -1,6 +1,4 @@
-# app/services/auth.py
-
-"""基于 AsyncSession 的 Refresh Token 会话签发、轮换与撤销。"""
+"""基于 AsyncSession 签发、轮换和撤销 Refresh Token 会话。"""
 
 from datetime import datetime, timedelta
 from uuid import uuid4
@@ -58,17 +56,17 @@ async def rotate_refresh_session(
         .with_for_update()
     )
     if not refresh_session:
-        raise UnauthorizedException(detail="无效的刷新令牌")
+        raise UnauthorizedException(detail="无效的 Refresh Token")
 
     now = utc_now()
     if refresh_session.revoked_at is not None:
         await _revoke_family(db, refresh_session.family_id, now)
         await db.flush()
-        raise UnauthorizedException(detail="刷新令牌已失效，请重新登录")
+        raise UnauthorizedException(detail="Refresh Token 已失效，请重新登录")
     if refresh_session.expires_at <= now or not refresh_session.user.is_active:
         await _revoke_family(db, refresh_session.family_id, now)
         await db.flush()
-        raise UnauthorizedException(detail="刷新令牌已过期，请重新登录")
+        raise UnauthorizedException(detail="Refresh Token 已过期，请重新登录")
 
     user = refresh_session.user
     refresh_session.revoked_at = now

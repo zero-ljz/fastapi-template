@@ -1,4 +1,4 @@
-# alembic/env.py
+"""配置 Alembic 迁移环境。"""
 
 from logging.config import fileConfig
 

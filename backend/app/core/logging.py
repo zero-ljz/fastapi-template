@@ -1,12 +1,4 @@
-# app/core/logging.py
-
-"""
-统一日志系统 — 基于 loguru
-
-用法:
-    from app.core.logging import logger
-    logger.info("Hello {name}", name="World")
-"""
+"""配置基于 Loguru 的统一日志系统。"""
 
 import logging
 import sys
@@ -15,22 +7,19 @@ from loguru import logger
 
 from app.core.config import settings
 
-# ---------------------------------------------------------------------------
-# 拦截标准库 logging → 转发到 loguru
-# ---------------------------------------------------------------------------
 
-
+# 将标准库日志转发到 Loguru
 class InterceptHandler(logging.Handler):
-    """将 stdlib logging 的日志拦截并转发给 loguru"""
+    """将 Python 标准库日志转发给 Loguru。"""
 
     def emit(self, record: logging.LogRecord) -> None:
-        # 获取对应的 loguru 日志级别
+        # 获取对应的 Loguru 日志级别
         try:
             level = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
 
-        # 找到真正的调用方
+        # 定位真实调用方
         frame, depth = logging.currentframe(), 2
         while frame and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
@@ -42,7 +31,7 @@ class InterceptHandler(logging.Handler):
 
 
 def setup_logging() -> None:
-    """初始化 stdout 日志；生产环境输出结构化 JSON。"""
+    """初始化标准输出日志；生产环境输出结构化 JSON。"""
 
     log_level = settings.LOG_LEVEL.upper()
     is_production = settings.ENVIRONMENT.lower() == "production"
@@ -67,7 +56,7 @@ def setup_logging() -> None:
         diagnose=settings.DEBUG,
     )
 
-    # 拦截 uvicorn / sqlalchemy / alembic 等标准库日志
+    # 接管 Uvicorn、SQLAlchemy 和 Alembic 等日志
     for name in (
         "uvicorn",
         "uvicorn.error",
@@ -79,7 +68,7 @@ def setup_logging() -> None:
         logging.getLogger(name).handlers = [InterceptHandler()]
         logging.getLogger(name).propagate = False
 
-    # 设置 root logger
+    # 配置根日志记录器
     logging.root.handlers = [InterceptHandler()]
     logging.root.setLevel(log_level)
 

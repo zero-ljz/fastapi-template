@@ -1,4 +1,4 @@
-# app/schemas/token.py
+"""定义令牌请求与响应结构。"""
 
 from pydantic import BaseModel, Field
 
@@ -16,10 +16,10 @@ class TokenPayload(BaseModel):
 
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str = Field(..., min_length=32)
-    client_type: str | None = Field(None, max_length=32)
-    device_name: str | None = Field(None, max_length=128)
+    refresh_token: str = Field(min_length=32)
+    client_type: str | None = Field(default=None, max_length=32)
+    device_name: str | None = Field(default=None, max_length=128)
 
 
 class RevokeTokenRequest(BaseModel):
-    refresh_token: str = Field(..., min_length=32)
+    refresh_token: str = Field(min_length=32)

@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+type ExceptionTypes = tuple[type[BaseException], ...]
+
 
 async def _commit_or_rollback(db: AsyncSession) -> None:
     try:
@@ -18,7 +20,7 @@ async def _commit_or_rollback(db: AsyncSession) -> None:
 async def unit_of_work(
     db: AsyncSession,
     *,
-    commit_on: tuple[type[BaseException], ...] = (),
+    commit_on: ExceptionTypes = (),
 ) -> AsyncIterator[None]:
     """统一提交或回滚一次完整用例。
 

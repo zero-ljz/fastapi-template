@@ -1,4 +1,4 @@
-# Backend
+# 后端
 
 ## 数据模型
 
@@ -61,7 +61,7 @@ uv run alembic downgrade -1
 
 ## 依赖管理
 
-`pyproject.toml` 维护 Python 3.12 约束、运行时依赖和开发依赖组；`uv.lock` 精确锁定完整的跨平台依赖树。二者都应提交，日常安装、CI 和 Docker 均使用锁文件。
+`pyproject.toml` 维护 Python 3.12+ 约束、运行时依赖和开发依赖组；`uv.lock` 精确锁定完整的跨平台依赖树。二者都应提交，日常安装、CI 和 Docker 均使用锁文件。
 
 常用依赖命令：
 
@@ -73,7 +73,7 @@ uv lock --upgrade                   # 升级全部允许范围内的依赖
 uv lock --upgrade-package fastapi   # 只升级指定依赖
 ```
 
-项目只支持 Python 3.12，`.python-version`、`requires-python` 和 CI 版本必须保持一致。修改依赖后提交更新后的 `pyproject.toml` 与 `uv.lock`。
+项目支持 Python 3.12 至当前最新稳定版；`.python-version` 和 Docker 使用最低支持版本，CI 覆盖全部受支持的次版本。修改依赖后提交更新后的 `pyproject.toml` 与 `uv.lock`。
 
 ## 测试与代码规范
 

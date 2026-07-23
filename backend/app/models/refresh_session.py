@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class RefreshSession(TimestampMixin, Base):
-    """按设备保存 Refresh Token 状态；Access Token 仍使用无状态 JWT。"""
+    """按设备保存 Refresh Token 状态； Access Token 仍使用无状态 JWT。"""
 
     __tablename__ = "refresh_session"
 
@@ -46,7 +46,7 @@ class RefreshSession(TimestampMixin, Base):
 
     __table_args__ = (
         Index("ix_refresh_session_user_active", "user_id", "revoked_at"),
-        {"comment": "刷新令牌会话表"},
+        {"comment": "Refresh Token 会话表"},
     )
 
     def __str__(self) -> str:

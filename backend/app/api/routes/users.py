@@ -1,5 +1,3 @@
-# app/api/routes/users.py
-
 """
 用户模块 API 路由
 
@@ -13,7 +11,7 @@
     DELETE /users/{user_id}           管理员   删除用户
 """
 
-from __future__ import annotations
+from typing import Annotated
 
 from fastapi import APIRouter, Query
 
@@ -33,9 +31,7 @@ from app.services import user as user_service
 router = APIRouter(prefix="/users", tags=["用户管理"])
 
 
-# ---------------------------------------------------------------------------
 # 公开接口
-# ---------------------------------------------------------------------------
 
 
 @router.post("/register", response_model=UserRead, status_code=201, summary="用户注册")
@@ -44,20 +40,18 @@ async def register(
     db: AsyncSessionDep,
     user_in: UserCreate,
 ):
-    """注册新用户"""
+    """注册新用户。"""
     async with unit_of_work(db):
         user = await user_service.create_user(db, user_in)
     return user
 
 
-# ---------------------------------------------------------------------------
 # 当前用户接口
-# ---------------------------------------------------------------------------
 
 
 @router.get("/me", response_model=UserRead, summary="获取当前用户信息")
 async def get_current_user_info(current_user: CurrentUser):
-    """获取当前登录用户的信息"""
+    """获取当前登录用户的信息。"""
     return current_user
 
 
@@ -68,7 +62,7 @@ async def update_current_user(
     current_user: CurrentUser,
     user_in: UserUpdate,
 ):
-    """更新当前登录用户的个人信息"""
+    """更新当前登录用户的个人信息。"""
     async with unit_of_work(db):
         user = await user_service.update_user(db, current_user, user_in)
     return user
@@ -81,16 +75,14 @@ async def update_current_user_password(
     current_user: CurrentUser,
     password_in: UserUpdatePassword,
 ):
-    """修改当前登录用户的密码"""
+    """修改当前登录用户的密码。"""
     async with unit_of_work(db):
         await user_service.update_password(db, current_user, password_in)
         await auth_service.revoke_all_user_sessions(db, current_user.id)
     return {"message": "密码修改成功"}
 
 
-# ---------------------------------------------------------------------------
 # 管理员接口
-# ---------------------------------------------------------------------------
 
 
 @router.get("", response_model=UserListResponse, summary="用户列表（管理员）")
@@ -98,12 +90,12 @@ async def list_users(
     *,
     db: AsyncSessionDep,
     current_user: CurrentUser,
-    page: int = Query(1, ge=1, description="页码"),
-    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
-    keyword: str | None = Query(None, description="搜索关键字"),
-    is_active: bool | None = Query(None, description="启用状态筛选"),
+    page: Annotated[int, Query(ge=1, description="页码")] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100, description="每页数量")] = 20,
+    keyword: Annotated[str | None, Query(description="搜索关键字")] = None,
+    is_active: Annotated[bool | None, Query(description="启用状态筛选")] = None,
 ):
-    """获取用户分页列表（仅管理员）"""
+    """获取用户分页列表，仅限管理员。"""
     if not current_user.is_superuser:
         raise ForbiddenException(detail="权限不足，需要管理员权限")
 
@@ -125,7 +117,7 @@ async def get_user(
     current_user: CurrentUser,
     user_id: int,
 ):
-    """按 ID 查询用户（仅管理员）"""
+    """按编号查询用户，仅限管理员。"""
     if not current_user.is_superuser:
         raise ForbiddenException(detail="权限不足，需要管理员权限")
 
@@ -142,7 +134,7 @@ async def delete_user(
     current_user: CurrentUser,
     user_id: int,
 ):
-    """删除用户（仅管理员）"""
+    """删除用户，仅限管理员。"""
     if not current_user.is_superuser:
         raise ForbiddenException(detail="权限不足，需要管理员权限")
 

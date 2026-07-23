@@ -1,4 +1,4 @@
-# app/core/db.py
+"""创建同步和异步数据库会话。"""
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
@@ -17,7 +17,7 @@ DATABASE_URL = URL.create(
 )
 
 engine = create_engine(DATABASE_URL, echo=settings.DEBUG, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autoflush=False, bind=engine)
 
 async_engine = create_async_engine(
     DATABASE_URL.set(drivername="mysql+aiomysql"),

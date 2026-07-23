@@ -1,7 +1,8 @@
-# app/core/config.py
+"""定义应用配置。"""
 
 import json
 from pathlib import Path
+from typing import Self
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,7 +33,7 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
-    # --- Database ---
+    # 数据库
     DB_DRIVER: str = "mysql"
     DB_HOST: str = "127.0.0.1"
     DB_PORT: str = "3306"
@@ -40,12 +41,12 @@ class Settings(BaseSettings):
     DB_PASSWORD: str = ""
     DB_NAME: str = "db1"
 
-    # --- Initial superuser seed ---
+    # 初始超级管理员
     FIRST_SUPERUSER: str = ""
     FIRST_SUPERUSER_EMAIL: str = ""
     FIRST_SUPERUSER_PASSWORD: str = ""
 
-    # --- 日志 ---
+    # 日志
     LOG_LEVEL: str = "INFO"
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
@@ -69,7 +70,7 @@ class Settings(BaseSettings):
         return value
 
     @model_validator(mode="after")
-    def validate_production_settings(self):
+    def validate_production_settings(self) -> Self:
         if self.ENVIRONMENT.lower() == "production":
             if self.DEBUG:
                 raise ValueError("DEBUG must be false in production")

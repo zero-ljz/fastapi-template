@@ -1,4 +1,4 @@
-# app/core/security.py
+"""提供密码哈希与令牌安全工具。"""
 
 import hashlib
 import secrets
@@ -20,7 +20,7 @@ def utc_now() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
 
 
-def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
+def create_access_token(subject: str | int, expires_delta: timedelta) -> str:
     now = datetime.now(UTC)
     payload = {
         "sub": str(subject),

@@ -1,17 +1,15 @@
-# app/schemas/user.py
-
-"""用户模块 Pydantic Schemas。"""
+"""定义用户模块的数据结构。"""
 
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str = Field(..., min_length=8, max_length=128)
-    username: str | None = Field(None, min_length=3, max_length=64)
-    display_name: str | None = Field(None, max_length=64)
+    password: str = Field(min_length=8, max_length=128)
+    username: str | None = Field(default=None, min_length=3, max_length=64)
+    display_name: str | None = Field(default=None, max_length=64)
 
     @field_validator("username")
     @classmethod
@@ -30,14 +28,14 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    display_name: str | None = Field(None, max_length=64)
+    display_name: str | None = Field(default=None, max_length=64)
     email: EmailStr | None = None
-    avatar_url: str | None = Field(None, max_length=512)
+    avatar_url: str | None = Field(default=None, max_length=512)
 
 
 class UserUpdatePassword(BaseModel):
-    old_password: str = Field(..., min_length=8, max_length=128)
-    new_password: str = Field(..., min_length=8, max_length=128)
+    old_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class UserRead(BaseModel):
@@ -53,7 +51,7 @@ class UserRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserListResponse(BaseModel):

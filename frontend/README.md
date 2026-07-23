@@ -1,4 +1,4 @@
-# Frontend
+# 前端
 
 基于 React、TypeScript 和 Vite 的独立 Web 客户端。模板内置 React Router、TanStack Query、React Hook Form、Zod、OpenAPI 类型客户端、ESLint、Prettier、Vitest、Testing Library 和 MSW。
 

@@ -1,4 +1,4 @@
-# app/schemas/__init__.py
+"""统一导出数据结构。"""
 
 from .token import RefreshTokenRequest, RevokeTokenRequest, Token, TokenPayload
 from .user import (

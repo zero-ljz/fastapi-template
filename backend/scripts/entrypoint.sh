@@ -1,11 +1,9 @@
 #!/bin/bash
 set -e
 
-# ================================
 # 容器入口脚本
-# ================================
 
-# ---------- 等待 MySQL 就绪 ----------
+# 等待 MySQL 就绪
 echo "⏳ 正在等待 MySQL 数据库就绪..."
 
 MAX_RETRIES=30
@@ -27,11 +25,11 @@ if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
     exit 1
 fi
 
-# ---------- 执行数据库迁移 ----------
+# 执行数据库迁移
 echo "🔄 正在执行数据库迁移 (alembic upgrade head)..."
 alembic upgrade head
 echo "✅ 数据库迁移完成！"
 
-# ---------- 启动应用服务 ----------
+# 启动应用服务
 echo "🚀 正在启动应用服务..."
 exec "$@"

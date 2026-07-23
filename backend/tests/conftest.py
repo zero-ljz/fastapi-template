@@ -1,10 +1,9 @@
-# tests/conftest.py
-
 """
-测试基础设施
-- 使用临时 SQLite 文件共享同步测试夹具与异步 API 会话
-- API 通过 aiosqlite + AsyncSession 执行真实异步数据库调用
-- 每个测试函数独立建表/销毁
+测试基础设施。
+
+- 使用临时 SQLite 文件共享同步测试夹具与异步接口会话。
+- 接口通过 aiosqlite 和 AsyncSession 执行真实异步数据库调用。
+- 每个测试函数独立创建并销毁数据表。
 """
 
 import asyncio
@@ -21,22 +20,14 @@ from app.core.security import get_password_hash
 from app.main import app
 from app.models import Base, User
 
-# ---------------------------------------------------------------------------
-# SQLite 兼容性：BigInteger → INTEGER（使 autoincrement 正常工作）
-# SQLite 仅对 "INTEGER" 类型的主键支持自增，BigInteger 会渲染为 BIGINT
-# ---------------------------------------------------------------------------
 
-
+# SQLite 仅对 INTEGER 主键提供自增，因此将 BigInteger 编译为 INTEGER。
 @compiles(BigInteger, "sqlite")
 def compile_big_integer_sqlite(type_, compiler, **kw):
     return "INTEGER"
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-
+# 测试夹具
 def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
@@ -63,7 +54,7 @@ def db_engine(tmp_path):
 @pytest.fixture(scope="function")
 def db_session(db_engine):
     engine, _ = db_engine
-    TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    TestSessionLocal = sessionmaker(autoflush=False, bind=engine)
     session = TestSessionLocal()
     try:
         yield session
@@ -101,7 +92,7 @@ def client(db_engine):
 
 @pytest.fixture(scope="function")
 def test_user(db_session):
-    """创建普通测试用户"""
+    """创建普通测试用户。"""
     user = User(
         username="testuser",
         email="test@example.com",
@@ -118,7 +109,7 @@ def test_user(db_session):
 
 @pytest.fixture(scope="function")
 def test_superuser(db_session):
-    """创建超级管理员测试用户"""
+    """创建超级管理员测试用户。"""
     user = User(
         username="admin",
         email="admin@example.com",
@@ -135,7 +126,7 @@ def test_superuser(db_session):
 
 @pytest.fixture(scope="function")
 def auth_headers(client, test_user):
-    """普通用户的认证 headers"""
+    """创建普通用户认证请求头。"""
     response = client.post(
         "/api/v1/login/access-token",
         data={"username": "testuser", "password": "Test123456"},
@@ -147,7 +138,7 @@ def auth_headers(client, test_user):
 
 @pytest.fixture(scope="function")
 def admin_auth_headers(client, test_superuser):
-    """管理员的认证 headers"""
+    """创建管理员认证请求头。"""
     response = client.post(
         "/api/v1/login/access-token",
         data={"username": "admin", "password": "Admin123456"},

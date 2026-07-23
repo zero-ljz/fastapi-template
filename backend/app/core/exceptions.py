@@ -1,23 +1,4 @@
-# app/core/exceptions.py
-
-"""
-统一异常体系
-
-层级:
-    AppException (base)
-    ├── BadRequestException      (400)
-    ├── UnauthorizedException    (401)
-    ├── ForbiddenException       (403)
-    ├── NotFoundException        (404)
-    ├── ConflictException        (409)
-    └── InternalServerException  (500)
-
-用法:
-    from app.core.exceptions import NotFoundException
-    raise NotFoundException(detail="用户不存在")
-"""
-
-from __future__ import annotations
+"""定义应用异常及其全局处理器。"""
 
 from typing import Any
 
@@ -26,13 +7,10 @@ from fastapi.responses import JSONResponse
 
 from app.core.logging import logger
 
-# ---------------------------------------------------------------------------
-# 异常类
-# ---------------------------------------------------------------------------
 
-
+# 异常类型
 class AppException(Exception):
-    """应用异常基类"""
+    """应用异常基类。"""
 
     status_code: int = 500
     detail: str = "服务器内部错误"
@@ -56,7 +34,7 @@ class AppException(Exception):
 
 
 class BadRequestException(AppException):
-    """400 — 请求参数错误"""
+    """表示请求参数错误。"""
 
     status_code = 400
     detail = "请求参数错误"
@@ -64,7 +42,7 @@ class BadRequestException(AppException):
 
 
 class UnauthorizedException(AppException):
-    """401 — 未认证"""
+    """表示请求尚未认证。"""
 
     status_code = 401
     detail = "未认证，请先登录"
@@ -72,7 +50,7 @@ class UnauthorizedException(AppException):
 
 
 class ForbiddenException(AppException):
-    """403 — 权限不足"""
+    """表示当前用户权限不足。"""
 
     status_code = 403
     detail = "权限不足"
@@ -80,7 +58,7 @@ class ForbiddenException(AppException):
 
 
 class NotFoundException(AppException):
-    """404 — 资源不存在"""
+    """表示请求的资源不存在。"""
 
     status_code = 404
     detail = "资源不存在"
@@ -88,7 +66,7 @@ class NotFoundException(AppException):
 
 
 class ConflictException(AppException):
-    """409 — 资源冲突"""
+    """表示请求与现有资源冲突。"""
 
     status_code = 409
     detail = "资源冲突"
@@ -96,26 +74,22 @@ class ConflictException(AppException):
 
 
 class InternalServerException(AppException):
-    """500 — 服务器内部错误"""
+    """表示服务器内部错误。"""
 
     status_code = 500
     detail = "服务器内部错误"
     error_code = "INTERNAL_ERROR"
 
 
-# ---------------------------------------------------------------------------
-# 全局异常处理器注册
-# ---------------------------------------------------------------------------
-
-
+# 全局异常处理器
 def register_exception_handlers(app: FastAPI) -> None:
-    """在 FastAPI 应用上注册全局异常处理器"""
+    """在 FastAPI 应用上注册全局异常处理器。"""
 
     @app.exception_handler(AppException)
     async def app_exception_handler(
         request: Request, exc: AppException
     ) -> JSONResponse:
-        """处理所有 AppException 子类"""
+        """处理所有 AppException 子类。"""
         logger.warning(
             "AppException | {method} {path} | {status} | {detail}",
             method=request.method,
@@ -139,7 +113,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def unhandled_exception_handler(
         request: Request, exc: Exception
     ) -> JSONResponse:
-        """兜底：处理所有未捕获的异常"""
+        """处理所有未捕获的异常。"""
         logger.exception(
             "Unhandled Exception | {method} {path} | {exc}",
             method=request.method,

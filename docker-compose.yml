@@ -1,9 +1,7 @@
-# ================================
 # Docker Compose 编排配置
-# ================================
 
 services:
-  # ---------- 应用服务 ----------
+  # 应用服务
   app:
     build:
       context: ./backend
@@ -30,7 +28,7 @@ services:
     networks:
       - app-network
 
-  # ---------- MySQL 数据库服务 ----------
+  # MySQL 数据库服务
   mysql:
     image: mysql:8.0
     environment:
@@ -55,12 +53,12 @@ services:
     networks:
       - app-network
 
-# ---------- 持久化数据卷 ----------
+# 持久化数据卷
 volumes:
   app-data:
   mysql-data:
 
-# ---------- 自定义网络 ----------
+# 自定义网络
 networks:
   app-network:
     driver: bridge

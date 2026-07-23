@@ -1,5 +1,3 @@
-# app/api/routes/login.py
-
 """登录、刷新与会话撤销。"""
 
 import datetime
@@ -69,7 +67,7 @@ async def login_access_token(
     )
 
 
-@router.post("/login/refresh", response_model=Token, summary="刷新访问令牌")
+@router.post("/login/refresh", response_model=Token, summary="刷新 Access Token")
 async def refresh_access_token(
     *, request: Request, db: AsyncSessionDep, token_in: RefreshTokenRequest
 ):

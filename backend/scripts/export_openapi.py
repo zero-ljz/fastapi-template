@@ -1,6 +1,4 @@
-"""Export the FastAPI OpenAPI document for frontend type generation."""
-
-from __future__ import annotations
+"""导出 OpenAPI 文档以生成前端接口类型。"""
 
 import json
 import sys
@@ -19,7 +17,7 @@ def main() -> None:
         json.dumps(app.openapi(), ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    print(f"OpenAPI document written to {output}")
+    print(f"OpenAPI 文档已写入 {output}")
 
 
 if __name__ == "__main__":

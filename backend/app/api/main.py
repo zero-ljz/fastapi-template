@@ -1,4 +1,4 @@
-# app/api/main.py
+"""汇总应用接口路由。"""
 
 from fastapi import APIRouter
 
